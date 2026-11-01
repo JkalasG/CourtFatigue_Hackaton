@@ -2,13 +2,15 @@
 
 # CourtFatigue: NBA shooters don't tire — they start cold
 
-**▶ Live app: https://courtfatigue-web.vercel.app/** · [Devpost](https://devpost.com/software/courtfatigue) · Built for the **AQX Sports Analytics Data Bowl 4.0** · MIT license
+**▶ Live app: https://courtfatigue-web.vercel.app/** · **[🎬 Video](https://youtu.be/sOfh15Tk0wY)** · [Devpost](https://devpost.com/software/courtfatigue) · Built for the **AQX Sports Analytics Data Bowl 4.0** · MIT license
 
 > **Coaches worry about minute 10. The leak is second 10.**
 >
 > 1 in 4 NBA shots is taken within 2 minutes of checking in. In the first 30 seconds, players shoot **1.46 pp below their own level**, and it **replicated on a season the model never saw**. That is **~27 points per team per season**: more than twice the cost of back-to-backs, and almost one win.
 
-![CourtFatigue demo: headline, bench calculator and 3D simulator](docs/img/demo.gif)
+[![CourtFatigue demo: headline, bench calculator and 3D simulator. Click to watch the full video](docs/img/demo.gif)](https://youtu.be/sOfh15Tk0wY)
+
+*Click the animation to watch the full video on YouTube.*
 
 | | Result | 95% CI |
 |---|---|---|

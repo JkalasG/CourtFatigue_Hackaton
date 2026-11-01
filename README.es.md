@@ -2,13 +2,15 @@
 
 # CourtFatigue: los tiradores de la NBA no se cansan, arrancan fríos
 
-**▶ App en vivo: https://courtfatigue-web.vercel.app/?lang=es** · [Devpost](https://devpost.com/software/courtfatigue) · Hecho para el **AQX Sports Analytics Data Bowl 4.0** · Licencia MIT
+**▶ App en vivo: https://courtfatigue-web.vercel.app/?lang=es** · **[🎬 Video](https://youtu.be/sOfh15Tk0wY)** · [Devpost](https://devpost.com/software/courtfatigue) · Hecho para el **AQX Sports Analytics Data Bowl 4.0** · Licencia MIT
 
 > **Los entrenadores se preocupan por el minuto 10. La fuga está en el segundo 10.**
 >
 > 1 de cada 4 tiros de la NBA se lanza en los 2 primeros minutos tras entrar a cancha. En los primeros 30 segundos, los jugadores tiran **1.46 pp por debajo de su propio nivel**, y **se replicó en una temporada que el modelo nunca vio**. Son **~27 puntos por equipo y temporada**: más del doble de lo que cuestan los back-to-backs, y casi una victoria.
 
-![Demo de CourtFatigue: titular, calculadora de banca y simulador 3D](docs/img/demo.gif)
+[![Demo de CourtFatigue: titular, calculadora de banca y simulador 3D. Clic para ver el video completo](docs/img/demo.gif)](https://youtu.be/sOfh15Tk0wY)
+
+*Haz clic en la animación para ver el video completo en YouTube (en inglés).*
 
 | | Resultado | IC 95% |
 |---|---|---|
