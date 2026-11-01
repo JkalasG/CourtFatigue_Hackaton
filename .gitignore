@@ -26,3 +26,9 @@ data/raw/external/
 
 # Local Three.js for tests/test_simulator.js
 tests/three.min.js
+
+# Play-by-play cache of scripts/build_extra_analyses.py (regenerated with --rebuild)
+data/processed/extra/*.csv
+
+# Demo videos (uploaded to YouTube/Devpost, too heavy for the repo)
+video/

@@ -1,0 +1,11 @@
+{
+  "shots_v2": 219526,
+  "found_in_v3": 1.0,
+  "stint_match": 0.9966063245355903,
+  "stint_match_reliable": 0.9966125559431129,
+  "inferred_v2": 0.003539444074961508,
+  "inferred_v3": 0.0036214389183969096,
+  "subs": 59783,
+  "unresolved": 526,
+  "ambiguous": 1021
+}

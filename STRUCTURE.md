@@ -19,11 +19,11 @@ raw data  ─►  src/  ─►  processed data  ─►  scripts/  ─►  web/da
 | `data/processed/` | Final shot table with expected shot and residual, and the model metrics | Regenerable intermediate results |
 | `data/README.md` | Column dictionary | Meaning of every variable |
 | **`src/`** | `stint_calculator.py` · `xshot_model.py` · `fatigue_stats.py` | **Where data become analysis** (see below) |
-| `scripts/` | `download_seasons.py` · `download_shot_logs.py` · `data_quality.py` · `build_web_data.py` · `build_defense_data.py` | Download data, audit its quality and package the results as JSON for the web |
+| `scripts/` | `download_seasons.py` · `download_shot_logs.py` · `data_quality.py` · `build_web_data.py` · `build_defense_data.py` · `build_extra_analyses.py` · `holdout_replication.py` · `build_readme_figures.py` | Download data, audit its quality, run the coaching analyses and the 2025-26 replication, and package the results as JSON for the web (plus the README charts) |
 | `web/` | `index.html` · `css/` · `js/` · `assets/` · `data/` · `simulador/` | The page (no libraries) and the 3D simulator. They calculate nothing: they read the JSON |
-| `tests/` | `test_fatigue_stats.py` (6 tests) · `test_simulator.js` (179 checks) | Verify the statistics do not invent effects and the simulator is coherent |
+| `tests/` | `test_fatigue_stats.py` (6 tests) · `test_calculator.js` (37 checks) · `test_simulator.js` (179 checks) | Verify the statistics do not invent effects, the calculator reproduces the Python output and the simulator is coherent |
 | `docs/` | Devpost text, video script, project description (English) and `docs/es/` (Spanish) | Submission material |
-| `.github/workflows/` | `pages.yml` | Publishes `web/` to GitHub Pages on every push to `main` |
+| `.github/workflows/` | `pages.yml` | Can publish `web/` to GitHub Pages (optional; the live app is on Vercel: https://courtfatigue-web.vercel.app/) |
 | `logos/` | Hackathon graphic material | Origin of the logos in `web/assets/` |
 
 ## What each file in `src/` does
@@ -38,6 +38,9 @@ raw data  ─►  src/  ─►  processed data  ─►  scripts/  ─►  web/da
 - **`data_quality.py`**: audits the data and writes [DATA_QUALITY.md](DATA_QUALITY.md), `docs/es/CALIDAD_DE_DATOS.md` and `web/data/quality.json`.
 - **`build_web_data.py`**: calls `fatigue_stats.py` and writes `summary.json`, `players.json` and `shots/<id>.json`.
 - **`build_defense_data.py`**: computes the rival-team and defender-distance effects.
+- **`build_extra_analyses.py`**: cost in points per team-season, cold start by shot type, free throws, bench time, selection bias and team audit → `extra.json`.
+- **`holdout_replication.py`**: preregistered replication on 2025-26 (`validate` checks the play-by-play adapter on 2024-25, `run` writes `holdout_replication.json`).
+- **`build_readme_figures.py`**: draws the README charts (`docs/img/fig_*.svg`) from `web/data/`.
 
 ## Interface language
 

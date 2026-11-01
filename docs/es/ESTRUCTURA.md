@@ -19,11 +19,11 @@ datos crudos  ─►  src/  ─►  datos procesados  ─►  scripts/  ─►  
 | `data/processed/` | Tabla final de tiros con tiro esperado y residuo, y las métricas del modelo | Resultados intermedios, regenerables |
 | `data/README.es.md` | Diccionario de columnas | Significado de cada variable |
 | **`src/`** | `stint_calculator.py` · `xshot_model.py` · `fatigue_stats.py` | **Aquí se convierte el dato en análisis** (ver abajo) |
-| `scripts/` | `download_seasons.py` · `download_shot_logs.py` · `data_quality.py` · `build_web_data.py` · `build_defense_data.py` | Descargan datos, auditan su calidad y empaquetan los resultados en JSON para la web |
+| `scripts/` | `download_seasons.py` · `download_shot_logs.py` · `data_quality.py` · `build_web_data.py` · `build_defense_data.py` · `build_extra_analyses.py` · `holdout_replication.py` · `build_readme_figures.py` | Descargan datos, auditan su calidad, corren los análisis para el entrenador y la replicación 2025-26, y empaquetan los resultados en JSON para la web (más los gráficos del README) |
 | `web/` | `index.html` · `css/` · `js/` · `assets/` · `data/` · `simulador/` | La página (sin librerías) y el simulador 3D. No calculan nada: leen los JSON |
-| `tests/` | `test_fatigue_stats.py` (6 pruebas) · `test_simulator.js` (179 comprobaciones) | Verifican que la estadística no invente efectos y que el simulador sea coherente |
+| `tests/` | `test_fatigue_stats.py` (6 pruebas) · `test_calculator.js` (37 comprobaciones) · `test_simulator.js` (179 comprobaciones) | Verifican que la estadística no invente efectos, que la calculadora reproduzca la salida de Python y que el simulador sea coherente |
 | `docs/` | Texto para Devpost, guion del video y descripción del proyecto (inglés) y `docs/es/` (español) | Material de la entrega |
-| `.github/workflows/` | `pages.yml` | Publica `web/` en GitHub Pages en cada push a `main` |
+| `.github/workflows/` | `pages.yml` | Puede publicar `web/` en GitHub Pages (opcional; la app en vivo está en Vercel: https://courtfatigue-web.vercel.app/) |
 | `logos/` | Material gráfico del hackatón | Origen de los logos de `web/assets/` |
 
 ## Qué hace cada archivo de `src/`
@@ -38,6 +38,9 @@ datos crudos  ─►  src/  ─►  datos procesados  ─►  scripts/  ─►  
 - **`data_quality.py`**: audita los datos y escribe [CALIDAD_DE_DATOS.md](CALIDAD_DE_DATOS.md), `DATA_QUALITY.md` y `web/data/quality.json`.
 - **`build_web_data.py`**: llama a `fatigue_stats.py` y escribe `summary.json`, `players.json` y `shots/<id>.json`.
 - **`build_defense_data.py`**: calcula el efecto del equipo rival y de la distancia del defensor.
+- **`build_extra_analyses.py`**: costo en puntos por equipo y temporada, arranque frío por tipo de tiro, tiros libres, tiempo en la banca, sesgo de selección y auditoría por equipo → `extra.json`.
+- **`holdout_replication.py`**: replicación preregistrada en 2025-26 (`validate` comprueba el adaptador del play-by-play en 2024-25, `run` escribe `holdout_replication.json`).
+- **`build_readme_figures.py`**: dibuja los gráficos del README (`docs/img/fig_*.svg`) a partir de `web/data/`.
 
 ## Idioma de la interfaz
 
