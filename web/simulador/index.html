@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en" data-title-key="sim.doc.title">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CourtFatigue 3D | NBA Shooting and Fatigue Simulator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="../js/i18n.js"></script>
+    
+    <style>
+        /* Tactics-board theme (mirrors ../css/style.css): walnut panels, chalk ink, court-line orange */
+        :root {
+            --board: #221c16; --board-2: #2b241d; --board-3: #362d24;
+            --chalk: #ece6da; --chalk-2: #cfc6b6; --muted: #a39887;
+            --faint: rgba(236, 230, 218, .14); --hair: rgba(236, 230, 218, .22);
+            --maple: #c9a273; --court: #e8923f; --good: #9cc48a; --bad: #e5584f;
+            --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+            --body: "Instrument Sans", system-ui, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background: #1a1612; color: var(--chalk); font-family: var(--body); font-variant-numeric: tabular-nums;
+            overflow: hidden; width: 100vw; height: 100vh; }
+        #webgl-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; cursor: crosshair; }
+        :focus-visible { outline: 2px solid var(--court); outline-offset: 2px; }
+
+        .court-hint { position: absolute; top: 146px; left: 50%; transform: translateX(-50%); z-index: 10;
+            background: rgba(34, 28, 22, .85); border: 1px dashed rgba(232, 146, 63, .6); padding: 5px 14px; border-radius: 2px;
+            font-size: .75rem; color: var(--chalk-2); pointer-events: none; display: flex; align-items: center; gap: 6px; }
+
+        /* Top scoreboard */
+        .hud-header { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; gap: 18px;
+            align-items: center; background: rgba(34, 28, 22, .92); border: 1px solid var(--hair); border-bottom: 2px solid var(--court);
+            padding: 8px 22px; border-radius: 2px; max-width: 90vw; }
+        .hud-item { display: flex; flex-direction: column; align-items: center; }
+        .hud-label { font-size: .72rem; color: var(--muted); font-weight: 500; }
+        .hud-clock { font: 800 1.9rem/1 var(--display); color: var(--good); letter-spacing: .02em; transition: color .3s ease; }
+        .hud-clock.warning { color: var(--court); }
+        .hud-clock.critical { color: var(--bad); }
+        .hud-badge { font-size: .72rem; font-weight: 600; padding: 1px 8px; border-radius: 2px; color: var(--good); border: 1px solid currentColor; }
+        .hud-badge.warning { color: var(--court); }
+        .hud-badge.critical { color: var(--bad); }
+        .hud-divider { width: 1px; height: 30px; background: var(--hair); }
+
+        /* Top-right tools */
+        .camera-tools { position: absolute; top: 14px; right: 14px; z-index: 10; display: flex; gap: 8px; }
+        .btn-tool { background: rgba(34, 28, 22, .92); border: 1px solid var(--hair); color: var(--chalk); padding: 8px 14px; border-radius: 2px;
+            font: 600 .8rem var(--body); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color .15s; }
+        .btn-tool:hover { border-color: var(--chalk); }
+        a.btn-tool { text-decoration: none; }
+
+        /* Floating panels: walnut slabs with a court-line top edge */
+        .floating-card { position: absolute; z-index: 10; background: rgba(34, 28, 22, .94); border: 1px solid var(--hair);
+            border-top: 2px solid var(--court); border-radius: 2px; box-shadow: 0 14px 30px rgba(0, 0, 0, .45); }
+        .card-header { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; cursor: grab;
+            border-bottom: 1px solid var(--faint); }
+        .card-header:active { cursor: grabbing; }
+        .card-title { font: 700 1.15rem var(--display); color: var(--chalk); display: flex; align-items: center; gap: 6px; letter-spacing: .01em; }
+        .card-title .ic { margin-right: 4px; color: var(--court); }
+        .card-btn-min { background: transparent; border: 1px solid var(--hair); color: var(--muted); width: 22px; height: 22px; border-radius: 2px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 700; }
+        .card-btn-min:hover { border-color: var(--chalk); color: var(--chalk); }
+        .card-body { padding: 12px 14px; }
+        .card-body.collapsed { display: none; }
+        #controls-panel { bottom: 14px; left: 14px; width: 300px; }
+        #metrics-panel { bottom: 14px; right: 14px; width: 290px; }
+
+        .control-group { margin-bottom: 10px; }
+        .control-label { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+        .control-val { color: var(--chalk); font-weight: 600; }
+        select, input[type="range"] { width: 100%; }
+        /* dropdowns: filled box, border and an orange chevron */
+        select { appearance: none; -webkit-appearance: none; background-color: var(--board-2); border: 1px solid var(--hair); border-radius: 3px;
+            color: var(--chalk); padding: 7px 34px 7px 10px; font: 500 .86rem var(--body); outline: none; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23e8923f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; background-size: 11px 7px;
+            transition: border-color .15s, background-color .15s, box-shadow .15s; }
+        select:hover { border-color: var(--chalk-2); background-color: var(--board-3); }
+        select:focus { border-color: var(--court); box-shadow: 0 0 0 3px rgba(232, 146, 63, .22); }
+        select option { background: var(--board-2); color: var(--chalk); }
+        #fatigue-scenario { margin-top: 4px; font-size: .72rem; padding: 4px 28px 4px 8px; background-position: right 9px center; }
+        input[type="range"] { -webkit-appearance: none; appearance: none; background: var(--hair); height: 2px; outline: none; margin: 8px 0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%;
+            background: var(--court); border: 2px solid var(--board); cursor: pointer; }
+        input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--court); border: 2px solid var(--board); cursor: pointer; }
+
+        .btn-shoot { width: 100%; padding: 11px; border: 0; border-radius: 2px; background: var(--chalk); color: var(--board);
+            font: 800 1.15rem var(--display); letter-spacing: .04em; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 8px; margin-top: 10px; transition: background .15s; }
+        .btn-shoot:hover:not(:disabled) { background: #fff; }
+        .btn-shoot:disabled { opacity: .55; cursor: not-allowed; }
+
+        .metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; font-size: .82rem; }
+        .metric-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid var(--hair); }
+        .metric-row .ci { font-size: .64rem; color: var(--muted); font-weight: 500; margin-left: 4px; }
+        .gauge-bar-bg { width: 100%; height: 3px; background: var(--faint); overflow: hidden; margin: 5px 0 8px; }
+        .gauge-bar-fill { height: 100%; width: 25%; transition: width .3s ease, background .3s ease; }
+
+        #result-banner { position: absolute; top: 118px; left: 50%; transform: translateX(-50%) translateY(-16px); opacity: 0; z-index: 20;
+            font: 800 2rem var(--display); letter-spacing: .03em; padding: 8px 26px; border-radius: 2px; pointer-events: none;
+            transition: all .3s cubic-bezier(.175, .885, .32, 1.275); text-align: center; background: rgba(34, 28, 22, .95); }
+        #result-banner.made { color: var(--good); border: 1px solid var(--good); border-bottom-width: 3px; transform: translateX(-50%) translateY(0); opacity: 1; }
+        #result-banner.missed { color: var(--bad); border: 1px solid var(--bad); border-bottom-width: 3px; transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        .chk { display: flex; gap: 8px; align-items: flex-start; font-size: .72rem; color: var(--muted); margin: 2px 0 12px; line-height: 1.35; cursor: pointer; }
+        .chk input { margin-top: 2px; accent-color: var(--court); }
+
+        /* "What weighs most": one diverging bar per term, centred on 0 */
+        #weights { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--hair); }
+        #weights .w-title { font: 700 1rem var(--display); color: var(--chalk); margin-bottom: 6px; }
+        #weights .w-row { display: grid; grid-template-columns: 82px 1fr 46px; align-items: center; gap: 6px; font-size: .68rem; color: var(--muted); margin: 4px 0; }
+        #weights .w-track { position: relative; height: 6px; background: var(--faint); }
+        #weights .w-track::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--court); }
+        #weights .w-bar { position: absolute; top: 0; bottom: 0; transition: all .25s; }
+        #weights .w-row.fat { color: var(--chalk); font-weight: 600; }
+        #weights .w-v { text-align: right; font-weight: 600; color: var(--chalk); }
+        #weights .w-note { font-size: .62rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+        .ic { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.2em; flex: none; }
+        .lang-sim { display: flex; gap: 2px; background: rgba(34, 28, 22, .92); border: 1px solid var(--hair); border-radius: 2px; }
+        .lang-sim button { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: 600 .74rem var(--body); padding: 6px 9px; cursor: pointer; }
+        .lang-sim button.on { color: var(--chalk); border-bottom-color: var(--court); }
+
+        @media (max-width: 820px) {
+            #controls-panel { bottom: 10px; left: 10px; width: calc(52% - 14px); max-width: 280px; }
+            #metrics-panel { bottom: 10px; right: 10px; width: calc(48% - 14px); max-width: 260px; }
+            .hud-header { padding: 6px 14px; gap: 10px; top: 8px; }
+            .hud-clock { font-size: 1.4rem; }
+        }
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+    </style>
+</head>
+<body>
+
+    <!-- Icon sprite -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+        <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+        <symbol id="i-camera" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+        <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20M5 4.5c4 3 4 12 0 15M19 4.5c-4 3-4 12 0 15"/></symbol>
+        <symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
+        <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+        <symbol id="i-back" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+    </defs></svg>
+
+    <!-- Three.js canvas -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Click hint -->
+    <div class="court-hint">
+        <svg class="ic" aria-hidden="true"><use href="#i-target"/></svg> <span data-i18n="sim.hint"></span>
+    </div>
+
+    <!-- Top HUD -->
+    <div class="hud-header" id="hud-header">
+        <div class="hud-item">
+            <span class="hud-label" data-i18n="sim.hud.stint"></span>
+            <div id="hud-clock" class="hud-clock">02:30</div>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="hud-item">
+            <span class="hud-label" data-i18n="sim.hud.status"></span>
+            <div id="hud-status" class="hud-badge">RESTED</div>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="hud-item">
+            <span class="hud-label" data-i18n="sim.hud.fatigue"></span>
+            <div id="hud-delta" style="font-weight: 700; color: #10B981; font-size: 1rem;">0.0 pp</div>
+            <select id="fatigue-scenario"><option value="central" data-i18n="sim.scn.data"></option><option value="pessimistic" data-i18n="sim.scn.pess"></option></select>
+            <div id="fatigue-note" style="font-size:.62rem;color:#94A3B8;max-width:220px;margin-top:3px;"></div>
+        </div>
+    </div>
+
+    <!-- Animated made / missed banner -->
+    <div id="result-banner">SWISH</div>
+
+    <!-- Camera tools, top right -->
+    <div class="camera-tools">
+        <a class="btn-tool" id="back-analysis" href="../index.html"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span data-i18n="sim.back"></span></a>
+        <button id="btn-camera" class="btn-tool" onclick="cycleCamera()"></button>
+        <button id="btn-reset-stint" class="btn-tool" onclick="resetStint()"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg><span data-i18n="sim.reset"></span></button>
+        <div class="lang-sim" id="lang-switch" role="group" aria-label="Language">
+            <button data-lang="en" class="on">EN</button><button data-lang="es">ES</button>
+        </div>
+    </div>
+
+    <!-- Draggable, collapsible control panel (left) -->
+    <div class="floating-card" id="controls-panel">
+        <div class="card-header" id="controls-drag-handle">
+            <div class="card-title">
+                <svg class="ic" aria-hidden="true"><use href="#i-ball"/></svg><span data-i18n="sim.controls"></span>
+            </div>
+            <button class="card-btn-min" id="btn-min-controls" onclick="toggleCard('controls')" data-i18n-title="sim.min.title">−</button>
+        </div>
+
+        <div class="card-body" id="controls-body">
+            <div class="control-group">
+                <div class="control-label">
+                    <span data-i18n="sim.player"></span>
+                </div>
+                <select id="select-player" onchange="onPlayerChanged()">
+                    <option value="Curry">Stephen Curry (GSW #30)</option>
+                    <option value="Tatum">Jayson Tatum (BOS #0)</option>
+                    <option value="LeBron">LeBron James (LAL #23)</option>
+                    <option value="Doncic">Luka Dončić (DAL #77)</option>
+                    <option value="Young">Trae Young (ATL #11)</option>
+                    <option value="Jokic">Nikola Jokić (DEN #15)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span data-i18n="sim.zone"></span>
+                </div>
+                <select id="select-shot-zone" onchange="onZoneSelectChanged()">
+                    <option value="top3" data-i18n="sim.z.top3"></option>
+                    <option value="corner3_r" data-i18n="sim.z.corner3_r"></option>
+                    <option value="corner3_l" data-i18n="sim.z.corner3_l"></option>
+                    <option value="wing3" data-i18n="sim.z.wing3"></option>
+                    <option value="midrange" data-i18n="sim.z.midrange"></option>
+                    <option value="freethrow" data-i18n="sim.z.freethrow"></option>
+                    <option value="paint" data-i18n="sim.z.paint"></option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span data-i18n="sim.stint"></span>
+                    <span id="slider-stint-val" class="control-val">2.5 min</span>
+                </div>
+                <input type="range" id="slider-stint" min="0" max="12.0" step="0.5" value="2.5" oninput="onStintSliderChange(this.value)">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span data-i18n="sim.rival"></span>
+                </div>
+                <select id="select-rival" onchange="onRivalChanged()">
+                    <option value="" data-i18n="sim.rival.avg"></option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span data-i18n-title="sim.defdist.tip" data-i18n="sim.defdist"></span>
+                    <span id="slider-def-val" class="control-val">4.0 ft</span>
+                </div>
+                <input type="range" id="slider-def" min="1.5" max="8" step="0.5" value="4" oninput="onDefenderChanged(this.value)">
+                <label class="chk" style="margin-top:6px;"><input type="checkbox" id="chk-typical" checked onchange="onTypicalToggled(this.checked)"><span data-i18n="sim.typical.chk"></span></label>
+            </div>
+
+            <label class="chk"><input type="checkbox" id="chk-defenders" checked onchange="toggleDefenders(this.checked)">
+                <span data-i18n="sim.defs.chk"></span></label>
+
+            <label class="chk"><input type="checkbox" id="chk-arc" checked onchange="updateArcPreview()">
+                <span data-i18n="sim.arc.chk"></span></label>
+
+            <button id="btn-shoot" class="btn-shoot" onclick="shootBall()">
+                <svg class="ic" aria-hidden="true"><use href="#i-ball"/></svg> <span data-i18n="sim.shoot"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Draggable, collapsible metrics panel (right) -->
+    <div class="floating-card" id="metrics-panel">
+        <div class="card-header" id="metrics-drag-handle">
+            <div class="card-title">
+                <svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><span data-i18n="sim.pred"></span>
+            </div>
+            <button class="card-btn-min" id="btn-min-metrics" onclick="toggleCard('metrics')" data-i18n-title="sim.min.title">−</button>
+        </div>
+
+        <div class="card-body" id="metrics-body">
+            <div class="metric-row">
+                <span style="color:#A39887;" data-i18n="sim.m.dist"></span>
+                <span id="metric-distance" style="font-weight:700; color:#ECE6DA;">25.0 ft</span>
+            </div>
+            <div class="metric-row">
+                <span style="color:#A39887;" data-i18n="sim.m.fatigue"></span>
+                <span id="metric-fatigue-pct" style="font-weight:700; color:#9CC48A;">20%</span>
+            </div>
+            <div class="gauge-bar-bg">
+                <div id="gauge-bar" class="gauge-bar-fill"></div>
+            </div>
+
+            <div class="metric-row">
+                <span style="color:#A39887;" data-i18n="sim.m.base"></span>
+                <span id="metric-base-xshot" style="font-weight:700;">48.5%</span>
+            </div>
+            <div class="metric-row">
+                <span style="color:#A39887;" data-i18n="sim.m.shotdist"></span>
+                <span id="metric-dist-adj" style="font-weight:700;">0.0 pp</span>
+            </div>
+            <div class="metric-row">
+                <span style="color:#A39887;"><span data-i18n="sim.m.def"></span> <span id="metric-def-ft">4.0</span> ft <span id="metric-def-typ" class="ci"></span>:</span>
+                <span><span id="metric-contest" style="font-weight:700;">0.0 pp</span><span id="metric-contest-ci" class="ci"></span></span>
+            </div>
+            <div class="metric-row">
+                <span style="color:#A39887;" data-i18n="sim.m.rival"></span>
+                <span><span id="metric-team" style="font-weight:700;">0.0 pp</span><span id="metric-team-ci" class="ci"></span></span>
+            </div>
+            <div class="metric-row">
+                <span style="color:#A39887;" data-i18n="sim.m.mins"></span>
+                <span id="metric-penalty" style="font-weight:700; color:#9CC48A;">0.0%</span>
+            </div>
+            <div class="metric-row">
+                <span style="color:#ECE6DA; font-weight:700;" data-i18n="sim.m.final"></span>
+                <span id="metric-final-prob" style="font-family:var(--display); font-size:1.5rem; font-weight:800; color:#ECE6DA;">48.5%</span>
+            </div>
+            <div id="weights"></div>
+            <div id="def-note" style="font-size:.6rem; color:#A39887; margin-top:8px; line-height:1.4;"></div>
+        </div>
+    </div>
+
+    <!-- 3D logic (Three.js) -->
+    <script>
+        // "Analysis" returns to the tab the reader came from (same tab and scroll), not to the start
+        (() => {
+            const back = document.getElementById("back-analysis");
+            let route = null, from = null;
+            try { route = sessionStorage.getItem("cf.route"); } catch (e) {}
+            if (route) back.href = "../index.html#" + route;
+            try { from = new URL(document.referrer); } catch (e) {}
+            if (!from || from.origin !== location.origin || !/\/(index\.html)?$/.test(from.pathname)) return;
+            back.addEventListener("click", (e) => { if (history.length > 1) { e.preventDefault(); history.back(); } });
+        })();
+        // Players (colours, numbers and height are illustrative). Base accuracy is replaced on load
+        // with the real season value (data/players.json); fatigue comes from the population model (data/summary.json).
+        const PLAYERS_DATA = {
+            Curry: {
+                name: "Stephen Curry", team: "GSW", number: "30",
+                jerseyColor: 0x1D428A, trimColor: 0xFFC72C, shortsColor: 0x1D428A,
+                skinColor: 0xE0A96D, hairColor: 0x271910, heightScale: 0.94,
+                baseFg: 48.5
+            },
+            Tatum: {
+                name: "Jayson Tatum", team: "BOS", number: "0",
+                jerseyColor: 0x007A33, trimColor: 0xFFFFFF, shortsColor: 0x007A33,
+                skinColor: 0xB57B48, hairColor: 0x1A110B, heightScale: 1.01,
+                baseFg: 46.8
+            },
+            LeBron: {
+                name: "LeBron James", team: "LAL", number: "23",
+                jerseyColor: 0x552583, trimColor: 0xFDB927, shortsColor: 0x552583,
+                skinColor: 0x8D5524, hairColor: 0x1A110B, heightScale: 1.03,
+                baseFg: 53.2
+            },
+            Doncic: {
+                name: "Luka Dončić", team: "DAL", number: "77",
+                jerseyColor: 0x00538C, trimColor: 0xB8C4CA, shortsColor: 0x00538C,
+                skinColor: 0xF1C27D, hairColor: 0x5C4033, heightScale: 1.00,
+                baseFg: 48.7
+            },
+            Young: {
+                name: "Trae Young", team: "ATL", number: "11",
+                jerseyColor: 0xC8102E, trimColor: 0xFDB927, shortsColor: 0xC8102E,
+                skinColor: 0xC68642, hairColor: 0x2A1D15, heightScale: 0.92,
+                baseFg: 42.5
+            },
+            Jokic: {
+                name: "Nikola Jokić", team: "DEN", number: "15",
+                jerseyColor: 0x0E2240, trimColor: 0xFEC524, shortsColor: 0x0E2240,
+                skinColor: 0xFCD0A1, hairColor: 0x4A3728, heightScale: 1.05,
+                baseFg: 58.3
+            }
+        };
+
+        // Fatigue model: MEASURED population slope (accuracy pp per consecutive minute), not per player.
+        const FATIGUE_MODEL = { central: 0.0, pessimistic: 0.0, scenario: 'central', loaded: false, mu_ci: null };
+        function fatigueSlope() { return FATIGUE_MODEL[FATIGUE_MODEL.scenario]; }
+        function fatigueDropFor(stintMin) {
+            // drop (pp) relative to 4 consecutive min; negative if the model measures an improvement
+            return stintMin > 4.0 ? -fatigueSlope() * (stintMin - 4.0) : 0;
+        }
+        const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        async function loadRealData() {
+            try {
+                const [sum, pl] = await Promise.all([
+                    fetch('../data/summary.json').then((r) => r.json()),
+                    fetch('../data/players.json').then((r) => r.json())
+                ]);
+                // Fatigue = slope per consecutive minute AFTER warm-up (from 2 min); the cold start is separate
+                const warm = sum.robustness.find((r) => r.label.startsWith('Warmed up only'));
+                FATIGUE_MODEL.central = warm.coef_pp;
+                // Pessimistic scenario: lower bound of the 95% CI of that slope (0 if the CI does not go below zero)
+                FATIGUE_MODEL.pessimistic = Math.min(0, warm.lo_pp);
+                FATIGUE_MODEL.mu_ci = [warm.lo_pp, warm.hi_pp];
+                const cs = (lab) => (sum.cold_start.find((r) => r.label === lab) || {}).effect_pp || 0;
+                DEF.cold = [{ hi: 0.5, eff: cs('0–30 s') }, { hi: 1.0, eff: cs('30–60 s') }, { hi: 2.0, eff: cs('1–2 min') }];
+                Object.values(PLAYERS_DATA).forEach((p) => {
+                    const hit = pl.find((x) => norm(x.name) === norm(p.name));
+                    if (hit) { p.baseFg = hit.fg * 100; p.real = true; }
+                });
+                FATIGUE_MODEL.loaded = true;
+            } catch (e) { /* no local server: stays at 0 (no effect) */ }
+            const sel = document.getElementById('fatigue-scenario');
+            if (sel) sel.addEventListener('change', () => { FATIGUE_MODEL.scenario = sel.value; onStintSliderChange(document.getElementById('slider-stint').value); });
+            updateFatigueNote();
+            onStintSliderChange(document.getElementById('slider-stint').value);
+        }
+        function updateFatigueNote() {
+            const note = document.getElementById('fatigue-note');
+            if (!note) return;
+            note.textContent = FATIGUE_MODEL.loaded
+                ? I18N.t('sim.fat.note', { x: (fatigueSlope() >= 0 ? '+' : '') + fatigueSlope().toFixed(3) })
+                : I18N.t('sim.nodata');
+        }
+
+        // @test-block probability-model (tests/test_simulator.js loads the code between these markers)
+        // Every accuracy term comes from measured data (see data/*.json). Nothing is hand-written.
+        const FT = 0.3048;
+        const DEF = { teams: [], team: null, contest: null, dist: null, season: null, mainDef: 4.0, cold: [], auto: true };
+        const TEAM_COLORS = { Hawks: 0xE03A3E, Celtics: 0x007A33, Nets: 0x2B2B2B, Hornets: 0x1D1160, Bulls: 0xCE1141, Cavaliers: 0x860038,
+            Mavericks: 0x00538C, Nuggets: 0x0E2240, Pistons: 0xC8102E, Warriors: 0x1D428A, Rockets: 0xCE1141, Pacers: 0x002D62,
+            Clippers: 0xC8102E, Lakers: 0x552583, Grizzlies: 0x5D76A9, Heat: 0x98002E, Bucks: 0x00471B, Timberwolves: 0x0C2340,
+            Pelicans: 0x0C2340, Knicks: 0x006BB6, Thunder: 0x007AC1, Magic: 0x0077C0, '76ers': 0x006BB6, Suns: 0x1D1160,
+            'Trail Blazers': 0xE03A3E, Kings: 0x5A2D81, Spurs: 0x8A8D8F, Raptors: 0xCE1141, Jazz: 0x002B5C, Wizards: 0x002B5C };
+        function teamColor(name) {
+            for (const k in TEAM_COLORS) { if (String(name).endsWith(k)) return TEAM_COLORS[k]; }
+            return 0x64748B;
+        }
+        // Fractional position inside a sorted grid
+        function interpIdx(grid, x) {
+            const n = grid.length;
+            if (x <= grid[0]) return { i: 0, j: 0, t: 0 };
+            if (x >= grid[n - 1]) return { i: n - 1, j: n - 1, t: 0 };
+            let i = 0;
+            while (grid[i + 1] < x) i++;
+            return { i, j: i + 1, t: (x - grid[i]) / (grid[i + 1] - grid[i]) };
+        }
+        function bilinear(table, shotGrid, defGrid, shotFt, defFt) {
+            const a = interpIdx(shotGrid, shotFt), b = interpIdx(defGrid, defFt);
+            const top = table[a.i][b.i] * (1 - b.t) + table[a.i][b.j] * b.t;
+            const bot = table[a.j][b.i] * (1 - b.t) + table[a.j][b.j] * b.t;
+            return top * (1 - a.t) + bot * a.t;
+        }
+        // Accuracy by shot distance, relative to the league average (our 4 seasons)
+        function distAdj(ft) {
+            if (!DEF.dist) return 0;
+            const a = DEF.dist.adj_pp, x = Math.max(0, Math.min(40, ft)), i = Math.floor(x), t = x - i;
+            return a[i] * (1 - t) + a[Math.min(40, i + 1)] * t;
+        }
+        // TYPICAL defender distance for a shot distance (2014-15 median): the defender adjustment is 0 there
+        function typicalDef(shotFt) {
+            const c = DEF.contest;
+            if (!c || !c.ref_def_by_shot_ft) return 4.0;
+            const a = interpIdx(c.shot_grid_ft, shotFt), r = c.ref_def_by_shot_ft;
+            return r[a.i] * (1 - a.t) + r[a.j] * a.t;
+        }
+        // Effect of the nearest defender's distance, relative to the typical distance for that shot type (NBA 2014-15 data)
+        function contestAdj(shotFt, defFt) {
+            const c = DEF.contest;
+            if (!c) return { adj: 0, lo: 0, hi: 0 };
+            const f = (tab) => bilinear(tab, c.shot_grid_ft, c.def_grid_ft, shotFt, defFt);
+            return { adj: f(c.adj_pp), lo: f(c.adj_lo_pp), hi: f(c.adj_hi_pp) };
+        }
+        // Average defensive effect of the rival team (latest season, shrunk)
+        function teamAdj() {
+            return DEF.team ? { adj: DEF.team.effect_pp, lo: DEF.team.lo_pp, hi: DEF.team.hi_pp } : { adj: 0, lo: 0, hi: 0 };
+        }
+        // Cold start: accuracy relative to the player's normal by time since entering (measured)
+        function coldAdj(stintMin) {
+            for (const b of DEF.cold) { if (stintMin < b.hi) return b.eff; }
+            return 0;
+        }
+        function computeShotProb() {
+            const stintMin = parseFloat(document.getElementById('slider-stint').value);
+            const pData = PLAYERS_DATA[activePlayerKey];
+            const dx = currentShooterPos.x - HOOP_X, dz = currentShooterPos.z - HOOP_Z;
+            const distFeet = Math.sqrt(dx * dx + dz * dz) * 3.28084;
+            const da = distAdj(distFeet), ca = contestAdj(distFeet, DEF.mainDef), ta = teamAdj();
+            const fatigueDrop = stintMin > 4.0 ? fatigueDropFor(stintMin) : 0;
+            const cold = coldAdj(stintMin);
+            const final = Math.max(2, Math.min(98, pData.baseFg + da + ca.adj + ta.adj + cold - fatigueDrop));
+            return { final, base: pData.baseFg, da, ca, ta, cold, fatigueDrop, distFeet, typ: typicalDef(distFeet) };
+        }
+
+        // ----- 3D defenders (illustrative positions; only the main one has an effect through its distance) -----
+        let defendersGroup = null;
+        function makeDefender(jerseyHex, alpha) {
+            const g = new THREE.Group();
+            const mk = (color, rough) => new THREE.MeshStandardMaterial({ color, roughness: rough, transparent: alpha < 1, opacity: alpha });
+            const jersey = mk(jerseyHex, 0.55), skin = mk(0x8D5524, 0.6), shoes = mk(0xF8FAFC, 0.4);
+            [-1, 1].forEach((s) => {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 0.85, 12), skin);
+                leg.position.set(s * 0.11, 0.46, 0); leg.castShadow = true; g.add(leg);
+                const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.07, 0.26), shoes);
+                shoe.position.set(s * 0.11, 0.04, 0.04); g.add(shoe);
+                const arm = new THREE.Group();                       // arms up: defensive stance
+                arm.position.set(s * 0.27, 1.55, 0);
+                const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.62, 10), skin);
+                seg.position.y = 0.31; arm.add(seg);
+                arm.rotation.z = -s * 0.3; arm.rotation.x = 1.15;
+                g.add(arm);
+            });
+            const shorts = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.3, 20), jersey);
+            shorts.scale.z = 0.7; shorts.position.y = 0.98; shorts.castShadow = true; g.add(shorts);
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.2, 0.56, 24), jersey);
+            torso.scale.z = 0.62; torso.position.y = 1.37; torso.castShadow = true; g.add(torso);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 20, 20), skin);
+            head.scale.set(0.92, 1.1, 1.0); head.position.y = 1.83; g.add(head);
+            return g;
+        }
+        function buildDefenders() {
+            if (defendersGroup) { scene.remove(defendersGroup); }
+            const wasVisible = defendersGroup ? defendersGroup.visible : true;
+            defendersGroup = new THREE.Group();
+            const color = DEF.team ? teamColor(DEF.team.team) : 0x64748B;
+            for (let k = 0; k < 5; k++) { defendersGroup.add(makeDefender(color, k === 0 ? 1.0 : 0.55)); }
+            defendersGroup.visible = wasVisible;
+            scene.add(defendersGroup);
+        }
+        const GHOST_SPOTS = [[-3.0, -2.2], [3.1, -2.6], [-1.3, -4.4], [1.5, -1.0], [-4.8, 0.6], [4.6, 1.3], [0.0, 3.8]];
+        function syncTypicalDefender() {
+            if (!DEF.auto || !DEF.contest) return;
+            const dx = currentShooterPos.x - HOOP_X, dz = currentShooterPos.z - HOOP_Z;
+            const typ = typicalDef(Math.sqrt(dx * dx + dz * dz) * 3.28084);
+            DEF.mainDef = Math.max(1.5, Math.min(8, Math.round(typ * 2) / 2));
+            const sl = document.getElementById('slider-def'), lb = document.getElementById('slider-def-val');
+            if (sl) sl.value = DEF.mainDef;
+            if (lb) lb.textContent = `${DEF.mainDef.toFixed(1)} ft`;
+        }
+        const DEF_SHADE = 0.38;   // the defender shifts ~22° off the shooter-hoop line, as in real defense
+        function placeDefenders() {
+            if (!defendersGroup) return;
+            syncTypicalDefender();
+            const sx = currentShooterPos.x, sz = currentShooterPos.z;
+            let vx = HOOP_X - sx, vz = HOOP_Z - sz;
+            const dist = Math.hypot(vx, vz) || 1;
+            vx /= dist; vz /= dist;
+            const d = Math.min(DEF.mainDef * FT, Math.max(0.46, dist - 0.3));   // center-to-center distance, never crossing the hoop
+            const c = Math.cos(DEF_SHADE), sn = Math.sin(DEF_SHADE);
+            const ux = vx * c - vz * sn, uz = vx * sn + vz * c;                 // rotated direction
+            const main = defendersGroup.children[0];
+            main.position.set(sx + ux * d, 0, sz + uz * d);
+            main.lookAt(sx, 0, sz);
+            const free = GHOST_SPOTS.filter(([x, z]) => Math.hypot(x - sx, z - sz) > 1.8 && Math.hypot(x - main.position.x, z - main.position.z) > 1.5);
+            for (let k = 1; k < 5; k++) {
+                const [x, z] = free[k - 1] || GHOST_SPOTS[k];
+                defendersGroup.children[k].position.set(x, 0, z);
+                defendersGroup.children[k].lookAt(sx, 0, sz);
+            }
+        }
+        function toggleDefenders(on) { if (defendersGroup) defendersGroup.visible = on; }
+        function onTypicalToggled(on) {
+            DEF.auto = on;
+            placeDefenders();
+            updatePredictiveStats();
+        }
+        function onDefenderChanged(v) {
+            DEF.auto = false;                                   // the user sets the distance
+            const chk = document.getElementById('chk-typical'); if (chk) chk.checked = false;
+            DEF.mainDef = parseFloat(v);
+            document.getElementById('slider-def-val').textContent = `${DEF.mainDef.toFixed(1)} ft`;
+            placeDefenders();
+            updatePredictiveStats();
+        }
+        function onRivalChanged() {
+            const id = document.getElementById('select-rival').value;
+            DEF.team = DEF.teams.find((t) => String(t.team_id) === id) || null;
+            buildDefenders(); placeDefenders();
+            updatePredictiveStats();
+        }
+        async function loadDefenseData() {
+            try {
+                const [d, c, dist] = await Promise.all([
+                    fetch('../data/defense.json').then((r) => r.json()),
+                    fetch('../data/contest.json').then((r) => r.json()),
+                    fetch('../data/distance.json').then((r) => r.json())
+                ]);
+                DEF.teams = d.teams; DEF.contest = c; DEF.dist = dist; DEF.season = d.season;
+                const sel = document.getElementById('select-rival');
+                d.teams.slice().sort((a, b) => a.team.localeCompare(b.team)).forEach((t) => {
+                    const o = document.createElement('option'); o.value = t.team_id; o.textContent = t.team; sel.appendChild(o);
+                });
+            } catch (e) { /* no defense data: adjustments stay at 0 */ }
+            if (typeof placeDefenders === 'function') placeDefenders();     // apply the typical distance now that the data is loaded
+            if (typeof updateArcPreview === 'function') updateArcPreview();
+            updateDefNote();
+            updatePredictiveStats();
+        }
+        function updateDefNote() {
+            const note = document.getElementById('def-note');
+            if (!note) return;
+            note.textContent = DEF.contest
+                ? I18N.t('sim.def.note', { s: `${DEF.season}-${String(+DEF.season + 1).slice(2)}` })
+                : I18N.t('sim.def.nodata');
+        }
+        // @end-test-block probability-model
+
+        // Predefined shot spots
+        const SHOT_ZONES = {
+            top3: { x: 0, z: 2.2 },
+            corner3_r: { x: 6.86, z: -5.2 },
+            corner3_l: { x: -6.86, z: -5.2 },
+            wing3: { x: 5.2, z: -0.3 },
+            midrange: { x: -3.5, z: -1.0 },
+            freethrow: { x: 0, z: -0.9 },
+            paint: { x: 0.6, z: -3.4 }
+        };
+
+        // Three.js Core
+        let scene, camera, renderer, controls;
+        let basketball, playerGroup, hoopMesh, netMesh;
+        let courtFloorMesh, targetRingMesh;
+        let isShooting = false;
+        let cameraModeIndex = 0;
+
+        // Official NBA hoop coordinates (meters)
+        const HOOP_X = 0;
+        const HOOP_Y = 3.05; // 10 ft
+        const HOOP_Z = -5.5; 
+        const RIM_RADIUS = 0.23;
+
+        // Current shooter position (meters)
+        let currentShooterPos = { x: 0, z: 2.2 };
+        let activePlayerKey = "Curry";
+
+        // References for joints and animation
+        let bodyGroup, rightArm, leftArm, rightLeg, leftLeg, headMesh, jerseyMesh, shortsMesh;
+        let ballInHands = true;
+
+        // 1. Scene initialisation
+        function initScene() {
+            const canvas = document.getElementById('webgl-canvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1A1612);
+            scene.fog = new THREE.FogExp2(0x1A1612, 0.022);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 8.5, 12.0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.02;
+            controls.minDistance = 3;
+            controls.maxDistance = 25;
+            controls.target.set(0, 2.0, -1.8);
+
+            setupLights();
+            createBasketballCourt();
+            createHoop();
+            createArena();
+            createTargetRing();
+            buildAthleticPlayer();
+            createBasketball();
+            initArcObjects();
+            buildDefenders();
+
+            // Interaction: click on the court to place the player
+            initCourtRaycasting();
+            initDraggableCards();
+
+            window.addEventListener('resize', onWindowResize, false);
+            updateShooterPosition(currentShooterPos.x, currentShooterPos.z);
+            updatePredictiveStats();
+            applySideCamera(0);
+        }
+
+        // Lighting
+        function setupLights() {
+            const ambient = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambient);
+
+            const spotAboveHoop = new THREE.SpotLight(0xffffff, 1.5);
+            spotAboveHoop.position.set(0, 12, -4);
+            spotAboveHoop.angle = Math.PI / 3;
+            spotAboveHoop.penumbra = 0.6;
+            spotAboveHoop.castShadow = true;
+            scene.add(spotAboveHoop);
+
+            const stadiumLight1 = new THREE.DirectionalLight(0xFFE2B8, 0.45);
+            stadiumLight1.position.set(10, 10, 8);
+            scene.add(stadiumLight1);
+
+            const stadiumLight2 = new THREE.DirectionalLight(0xFFD3A0, 0.3);
+            stadiumLight2.position.set(-10, 10, 8);
+            scene.add(stadiumLight2);
+        }
+
+        // Wooden court
+        function createBasketballCourt() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Maple hardwood: narrow planks with staggered seams and slight tone variation (deterministic)
+            let seed = 11;
+            const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+            const TONES = ["#9a6b40", "#94663d", "#a07145", "#8f623a", "#9c6e43"];
+            for (let y = 0; y < 512; y += 16) {
+                let x = -Math.floor(rnd() * 160);
+                while (x < 512) {
+                    const len = 140 + Math.floor(rnd() * 120);
+                    ctx.fillStyle = TONES[Math.floor(rnd() * TONES.length)];
+                    ctx.fillRect(x, y, len, 16);
+                    ctx.fillStyle = "rgba(90, 60, 30, .35)";
+                    ctx.fillRect(x + len - 1, y, 1, 16);
+                    x += len;
+                }
+                ctx.fillStyle = "rgba(90, 60, 30, .28)";
+                ctx.fillRect(0, y + 15, 512, 1);
+            }
+
+            const floorTexture = new THREE.CanvasTexture(canvas);
+            floorTexture.wrapS = THREE.RepeatWrapping;
+            floorTexture.wrapT = THREE.RepeatWrapping;
+            floorTexture.repeat.set(4, 4);
+
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                map: floorTexture,
+                roughness: 0.55,
+                metalness: 0.05
+            });
+
+            const floorGeo = new THREE.PlaneGeometry(16, 16);
+            courtFloorMesh = new THREE.Mesh(floorGeo, floorMaterial);
+            courtFloorMesh.rotation.x = -Math.PI / 2;
+            courtFloorMesh.position.set(0, 0, -1);
+            courtFloorMesh.receiveShadow = true;
+            scene.add(courtFloorMesh);
+
+            createCourtMarkings();
+        }
+
+        // Official NBA markings (metres, relative to the hoop) painted on a transparent overlay of the floor.
+        // WebGL ignores line widths, so the lines are drawn into a texture to stay visible at any zoom.
+        function createCourtMarkings() {
+            const PX = 128, SIZE = 16, CX = 0, CZ = -1;                 // floor plane: 16 x 16 m centred at (0, -1)
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = PX * SIZE;
+            const ctx = canvas.getContext('2d');
+            const u = (x) => (x - CX + SIZE / 2) * PX, v = (z) => (z - CZ + SIZE / 2) * PX;
+
+            const BASE = HOOP_Z - 1.575;                  // baseline: rim centre is 5.25 ft from it
+            const HALF_W = 7.62;                          // court width 50 ft
+            const LANE_W = 2.44, FT_Z = BASE + 5.79;      // lane 16 ft wide, free-throw line 19 ft from baseline
+            const R3 = 7.24, C3 = 6.71;                   // 23.75 ft arc, 22 ft corners
+            const cornerZ = HOOP_Z + Math.sqrt(R3 * R3 - C3 * C3);
+
+            // painted lane (wood stain), then the lines in chalk white
+            ctx.fillStyle = 'rgba(110, 59, 30, 0.6)';
+            ctx.fillRect(u(-LANE_W), v(BASE), u(LANE_W) - u(-LANE_W), v(FT_Z) - v(BASE));
+            ctx.strokeStyle = 'rgba(246, 241, 232, 0.95)';
+            ctx.lineWidth = 0.07 * PX;
+            ctx.lineCap = 'butt';
+            const path = (draw, dash) => { ctx.setLineDash(dash || []); ctx.beginPath(); draw(); ctx.stroke(); };
+            const r = (m) => m * PX;
+
+            path(() => { ctx.moveTo(u(-HALF_W), v(SIZE / 2 + CZ)); ctx.lineTo(u(-HALF_W), v(BASE)); ctx.lineTo(u(HALF_W), v(BASE)); ctx.lineTo(u(HALF_W), v(SIZE / 2 + CZ)); });
+            path(() => ctx.rect(u(-LANE_W), v(BASE), u(LANE_W) - u(-LANE_W), v(FT_Z) - v(BASE)));
+            // free-throw circle: solid outside the lane, dashed inside
+            path(() => ctx.arc(u(0), v(FT_Z), r(1.83), 0, Math.PI));
+            path(() => ctx.arc(u(0), v(FT_Z), r(1.83), Math.PI, 2 * Math.PI), [r(0.3), r(0.25)]);
+            // restricted area (4 ft)
+            path(() => ctx.arc(u(HOOP_X), v(HOOP_Z), r(1.22), 0, Math.PI));
+            // three-point line: straight corners + arc
+            const a0 = Math.atan2(cornerZ - HOOP_Z, C3), a1 = Math.PI - a0;
+            path(() => {
+                ctx.moveTo(u(C3), v(BASE)); ctx.lineTo(u(C3), v(cornerZ));
+                ctx.arc(u(HOOP_X), v(HOOP_Z), r(R3), a0, a1);
+                ctx.lineTo(u(-C3), v(BASE));
+            });
+            // lane hash marks
+            [2.13, 3.05, 3.96].forEach((d) => {
+                path(() => { ctx.moveTo(u(-LANE_W - 0.15), v(BASE + d)); ctx.lineTo(u(-LANE_W), v(BASE + d)); ctx.moveTo(u(LANE_W), v(BASE + d)); ctx.lineTo(u(LANE_W + 0.15), v(BASE + d)); });
+            });
+
+            const tex = new THREE.CanvasTexture(canvas);
+            if (renderer) tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.6,
+                polygonOffset: true, polygonOffsetFactor: -1 });
+            const overlay = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE), mat);
+            overlay.rotation.x = -Math.PI / 2;
+            overlay.position.set(CX, 0.003, CZ);
+            overlay.receiveShadow = true;
+            scene.add(overlay);
+        }
+
+        // Hackathon logos, loaded once and drawn into canvas textures (banners in the stands, ad boards).
+        // The SVG gets explicit width/height so every browser can rasterise it.
+        const LOGOS = { aqx: null, devpost: null };
+        const logoWaiters = [];
+        function whenLogos(fn) { if (LOGOS.aqx && LOGOS.devpost) fn(); else logoWaiters.push(fn); }
+        function loadLogos() {
+            const done = () => { if (LOGOS.aqx && LOGOS.devpost) logoWaiters.splice(0).forEach((f) => f()); };
+            const aqx = new Image();
+            aqx.onload = () => { LOGOS.aqx = aqx; done(); };
+            aqx.src = '../assets/aqx-logo.png';
+            fetch('../assets/devpost-logo.svg').then((r) => r.text()).then((svg) => {
+                const img = new Image();
+                img.onload = () => { LOGOS.devpost = img; done(); };
+                img.src = URL.createObjectURL(new Blob([svg.replace('<svg ', '<svg width="600" height="117" ')], { type: 'image/svg+xml' }));
+            }).catch(() => { /* no logo: banners stay plain */ });
+        }
+        function logoTexture(w, h, paint) {
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1f1914';
+            ctx.fillRect(0, 0, w, h);
+            const tex = new THREE.CanvasTexture(canvas);
+            if (renderer) tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            whenLogos(() => { paint(ctx, w, h); tex.needsUpdate = true; });
+            return tex;
+        }
+        // draws an image centred in a box, keeping its aspect ratio
+        function fitImage(ctx, img, x, y, w, h) {
+            const k = Math.min(w / img.width, h / img.height), iw = img.width * k, ih = img.height * k;
+            ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+        }
+        function bannerTexture(key) {
+            return logoTexture(1536, 544, (ctx, w, h) => {
+                ctx.strokeStyle = '#E8923F'; ctx.lineWidth = 6;
+                ctx.strokeRect(24, 24, w - 48, h - 48);
+                fitImage(ctx, LOGOS[key], 120, 110, w - 240, h - 220);
+            });
+        }
+
+        // Arena: dark apron, ad boards and stepped stands with a crowd (instanced, purely decorative).
+        // The stand on the TV-camera side (+x) sits further back so it never blocks the side view.
+        function createArena() {
+            loadLogos();
+            const arena = new THREE.Group();
+            const apron = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x241d17, roughness: 0.9 }));
+            apron.rotation.x = -Math.PI / 2;
+            apron.position.set(0, -0.01, -1);
+            apron.receiveShadow = true;
+            arena.add(apron);
+
+            // ad boards around the court: both logos repeated along the face, court-orange light strip on top
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0x1f1914, roughness: 0.6 });
+            const stripMat = new THREE.MeshBasicMaterial({ color: 0xE8923F });
+            const adTile = logoTexture(1024, 128, (ctx, w, h) => {
+                fitImage(ctx, LOGOS.aqx, 40, 28, w / 2 - 80, h - 56);
+                ctx.fillStyle = 'rgba(236, 230, 218, .35)';
+                ctx.fillRect(w / 2 - 1, 30, 2, h - 60);
+                fitImage(ctx, LOGOS.devpost, w / 2 + 40, 34, w / 2 - 80, h - 68);
+            });
+            adTile.wrapS = THREE.RepeatWrapping;
+            const adBoard = (w, x, z, rotY) => {
+                const g = new THREE.Group();
+                const tile = adTile.clone();
+                tile.needsUpdate = true;
+                tile.repeat.set(w / 7.2, 1);                              // one tile is 7.2 m long on a 0.9 m board
+                whenLogos(() => { tile.needsUpdate = true; });
+                const face = new THREE.MeshStandardMaterial({ map: tile, roughness: 0.5, emissive: 0xffffff, emissiveMap: tile, emissiveIntensity: 0.35 });
+                const panel = new THREE.Mesh(new THREE.BoxGeometry(w, 0.9, 0.12), [boardMat, boardMat, boardMat, boardMat, face, boardMat]);
+                panel.position.y = 0.45;
+                const strip = new THREE.Mesh(new THREE.BoxGeometry(w, 0.06, 0.13), stripMat);
+                strip.position.y = 0.93;
+                g.add(panel, strip);
+                g.position.set(x, 0, z);
+                g.rotation.y = rotY;
+                arena.add(g);
+            };
+            adBoard(17, 0, -9.3, 0);
+            adBoard(16, -9.0, -1, Math.PI / 2);
+
+            // stands: rows step back and up from a start line; seats along the section
+            const ROWS = 10, DEPTH = 0.8, RISE = 0.45, SEAT = 0.56;
+            const stepMat = new THREE.MeshStandardMaterial({ color: 0x2e261f, roughness: 0.85 });
+            const people = [];
+            let seed = 23;
+            const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+            // section: centre (cx, cz), length along the section, outward direction (ox, oz), start distance d0;
+            // banner: { key, len } drapes a logo over rows 2-6 in the middle of the section (no crowd under it)
+            const section = (cx, cz, len, ox, oz, d0, banner) => {
+                const ax = -oz, az = ox;                                  // along-axis, perpendicular to outward
+                const rotY = Math.atan2(ax, az);
+                for (let r = 0; r < ROWS; r++) {
+                    const d = d0 + r * DEPTH, h = r * RISE;
+                    const step = new THREE.Mesh(new THREE.BoxGeometry(len, h + RISE, DEPTH), stepMat);
+                    step.position.set(cx + ox * (d + DEPTH / 2), (h + RISE) / 2, cz + oz * (d + DEPTH / 2));
+                    step.rotation.y = rotY + Math.PI / 2;
+                    step.receiveShadow = true;
+                    arena.add(step);
+                    const n = Math.floor(len / SEAT);
+                    for (let i = 0; i < n; i++) {
+                        const t = (i + 0.5) * SEAT - len / 2 + (rnd() - 0.5) * 0.12;
+                        if (banner && r >= 2 && r <= 6 && Math.abs(t) < banner.len / 2 + 0.2) continue;
+                        if (rnd() < 0.14) continue;                       // a few empty seats
+                        people.push({ x: cx + ax * t + ox * (d + DEPTH * 0.45), z: cz + az * t + oz * (d + DEPTH * 0.45),
+                            y: h + RISE, rotY: rotY + Math.PI / 2, lean: (rnd() - 0.5) * 0.15, tall: 0.9 + rnd() * 0.2 });
+                    }
+                }
+                if (banner) {
+                    // lies on the step noses from row 2 to row 6, facing the court and the sky
+                    const a = Math.atan2(RISE, DEPTH), dMid = d0 + 3.6, yMid = 2.475 + 0.08;
+                    const slant = Math.hypot(5 * DEPTH, 5 * RISE);
+                    const tex = bannerTexture(banner.key);
+                    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, emissive: 0xffffff, emissiveMap: tex,
+                        emissiveIntensity: 0.3, side: THREE.DoubleSide });
+                    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(banner.len, slant), mat);
+                    mesh.position.set(cx + ox * dMid, yMid, cz + oz * dMid);
+                    mesh.lookAt(mesh.position.x - ox * Math.sin(a), yMid + Math.cos(a), mesh.position.z - oz * Math.sin(a));
+                    arena.add(mesh);
+                }
+            };
+            section(0, -10.6, 22, 0, -1, 0, { key: 'devpost', len: 12 });     // behind the basket
+            section(-10.4, -1, 19, -1, 0, 0, { key: 'aqx', len: 13 });        // far sideline (TV view)
+            section(0, 8.6, 22, 0, 1, 0, { key: 'aqx', len: 12 });            // behind the shooter
+            section(16.5, -1, 19, 1, 0, 0);                                   // camera side, set back
+
+            // crowd: torso + head instanced meshes with muted, warm-leaning clothing colours
+            const CLOTHES = [0x7a2e2a, 0x3d4a5c, 0xd8d0c2, 0x5b4636, 0x2f3b2f, 0x8a6a3a, 0x494949, 0x9b4a2c, 0x26303f, 0xb8ad9a];
+            const SKIN = [0x8d5524, 0xc68642, 0xe0ac69, 0x6b3e1f, 0xf1c27d];
+            // dimmed so the crowd stays background and the ball's path reads over it
+            const crowdMat = new THREE.MeshLambertMaterial({ color: 0x77706a });
+            const torso = new THREE.InstancedMesh(new THREE.BoxGeometry(0.4, 0.55, 0.28), crowdMat, people.length);
+            const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 8, 6), crowdMat, people.length);
+            const m = new THREE.Object3D(), c = new THREE.Color();
+            people.forEach((q, i) => {
+                m.position.set(q.x, q.y + 0.28 * q.tall, q.z);
+                m.rotation.set(q.lean, q.rotY, 0);
+                m.scale.set(1, q.tall, 1);
+                m.updateMatrix();
+                torso.setMatrixAt(i, m.matrix);
+                torso.setColorAt(i, c.setHex(CLOTHES[Math.floor(rnd() * CLOTHES.length)]));
+                m.position.set(q.x, q.y + 0.68 * q.tall, q.z);
+                m.scale.set(1, 1, 1);
+                m.updateMatrix();
+                head.setMatrixAt(i, m.matrix);
+                head.setColorAt(i, c.setHex(SKIN[Math.floor(rnd() * SKIN.length)]));
+            });
+            arena.add(torso, head);
+            scene.add(arena);
+        }
+
+        // Floor ring marking where the player stands
+        function createTargetRing() {
+            const ringGeo = new THREE.RingGeometry(0.35, 0.45, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xE8923F, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+            targetRingMesh = new THREE.Mesh(ringGeo, ringMat);
+            targetRingMesh.rotation.x = -Math.PI / 2;
+            targetRingMesh.position.set(0, 0.02, 0);
+            scene.add(targetRingMesh);
+        }
+
+        // Backboard and hoop
+        function createHoop() {
+            const hoopGroup = new THREE.Group();
+
+            const poleGeo = new THREE.CylinderGeometry(0.12, 0.12, 4.2, 16);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x5C5248, metalness: 0.6, roughness: 0.35 });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.set(0, 2.1, -6.8);
+            pole.castShadow = true;
+            hoopGroup.add(pole);
+
+            const armGeo = new THREE.BoxGeometry(0.12, 0.12, 1.4);
+            const arm = new THREE.Mesh(armGeo, poleMat);
+            arm.position.set(0, 3.3, -6.1);
+            hoopGroup.add(arm);
+
+            // Backboard: frosted acrylic with a white frame and a thick shooter's square, so it reads against the dark sky
+            const boardGeo = new THREE.BoxGeometry(1.8, 1.05, 0.04);
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0xDDE4EA, transparent: true, opacity: 0.82, roughness: 0.35, metalness: 0.05 });
+            const board = new THREE.Mesh(boardGeo, boardMat);
+            board.position.set(0, 3.3, -5.85);
+            board.castShadow = true;
+            hoopGroup.add(board);
+
+            const bar = (w, h, x, y, color, z) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), new THREE.MeshStandardMaterial({ color, roughness: 0.5 }));
+                m.position.set(x, y, z);
+                hoopGroup.add(m);
+            };
+            const FRAME = 0xF8FAFC, SQUARE = 0xE8923F, T = 0.05;
+            bar(1.8 + T, T, 0, 3.3 + 0.525, FRAME, -5.84); bar(1.8 + T, T, 0, 3.3 - 0.525, FRAME, -5.84);
+            bar(T, 1.05, -0.9, 3.3, FRAME, -5.84); bar(T, 1.05, 0.9, 3.3, FRAME, -5.84);
+            bar(0.61, 0.04, 0, 3.2 + 0.22, SQUARE, -5.82); bar(0.61, 0.04, 0, 3.2 - 0.22, SQUARE, -5.82);
+            bar(0.04, 0.44, -0.3, 3.2, SQUARE, -5.82); bar(0.04, 0.44, 0.3, 3.2, SQUARE, -5.82);
+
+            const rimGeo = new THREE.TorusGeometry(RIM_RADIUS, 0.018, 16, 32);
+            const rimMat = new THREE.MeshStandardMaterial({ color: 0xF97316, metalness: 0.6, roughness: 0.3 });
+            const rim = new THREE.Mesh(rimGeo, rimMat);
+            rim.rotation.x = Math.PI / 2;
+            rim.position.set(HOOP_X, HOOP_Y, HOOP_Z);
+            hoopGroup.add(rim);
+
+            const netGeo = new THREE.CylinderGeometry(RIM_RADIUS, 0.14, 0.45, 16, 4, true);
+            const netMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true, transparent: true, opacity: 0.8 });
+            netMesh = new THREE.Mesh(netGeo, netMat);
+            netMesh.position.set(HOOP_X, HOOP_Y - 0.22, HOOP_Z);
+            hoopGroup.add(netMesh);
+
+            scene.add(hoopGroup);
+            hoopMesh = hoopGroup;
+        }
+
+        // =========================================================================
+        // 2. PLAYER MODEL (ARTICULATED SKELETON, UNIFORM, NUMBER)
+        // =========================================================================
+
+        // Skeleton measures in meters (before scaling by height)
+        const UPPER_ARM = 0.30, FOREARM = 0.27, THIGH = 0.45, SHIN = 0.45;
+        const HIP_Y = 0.95, SHOULDER_Y = 1.58, ANKLE_Y = 0.1;
+        const IDLE_CROUCH = 0.04;
+
+        // Ball in the player's local coordinates (+Z faces the hoop)
+        const BALL_HOLD = new THREE.Vector3(0.1, 1.25, 0.32);      // Triple threat
+        const BALL_SET_POINT = new THREE.Vector3(0.1, 2.02, 0.3);  // Set above the right eye
+
+        // Wrist position relative to the ball and the direction the elbow points
+        const RIGHT_HAND_HOLD = new THREE.Vector3(0.1, 0.0, -0.08);
+        const RIGHT_HAND_SET = new THREE.Vector3(0.0, -0.15, -0.05);
+        const LEFT_HAND_HOLD = new THREE.Vector3(-0.13, 0.02, -0.02);
+        const LEFT_HAND_SET = new THREE.Vector3(-0.15, -0.02, -0.02);
+        const ELBOW_POLE_R_HOLD = new THREE.Vector3(1, 0, -1);
+        const ELBOW_POLE_R_SET = new THREE.Vector3(0.2, -1, 0.4);
+        const ELBOW_POLE_L_HOLD = new THREE.Vector3(-1, 0, -1);
+        const ELBOW_POLE_L_SET = new THREE.Vector3(-1, -0.4, 0);
+        const KNEE_POLE = new THREE.Vector3(0, 0, 1);
+        const DOWN = new THREE.Vector3(0, -1, 0);
+
+        const hexColor = (c) => '#' + c.toString(16).padStart(6, '0');
+
+        // Sleeveless jersey texture. On a CylinderGeometry u=0 is the front (+Z)
+        // and u=0.5 the back, so the large number goes at the canvas centre and the
+        // front one is drawn split across both edges so it joins at the seam.
+        function createJerseyTexture(pData) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const trim = hexColor(pData.trimColor);
+
+            ctx.fillStyle = hexColor(pData.jerseyColor);
+            ctx.fillRect(0, 0, 512, 256);
+
+            // Neck/armhole trim, jersey hem and side panels
+            ctx.fillStyle = trim;
+            ctx.fillRect(0, 0, 512, 10);
+            ctx.fillRect(0, 244, 512, 12);
+            ctx.fillRect(117, 0, 22, 256);
+            ctx.fillRect(373, 0, 22, 256);
+
+            ctx.textAlign = 'center';
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#FFFFFF';
+
+            // Back: surname + large number
+            const lastName = pData.name.split(' ').slice(-1)[0].toUpperCase();
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 30px Outfit, sans-serif';
+            ctx.fillText(lastName, 256, 58);
+            ctx.fillStyle = trim;
+            ctx.font = 'bold 120px Orbitron, sans-serif';
+            ctx.strokeText(pData.number, 256, 190);
+            ctx.fillText(pData.number, 256, 190);
+
+            // Front: franchise + medium number
+            [0, 512].forEach(x => {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 34px Outfit, sans-serif';
+                ctx.fillText(pData.team, x, 70);
+                ctx.fillStyle = trim;
+                ctx.font = 'bold 80px Orbitron, sans-serif';
+                ctx.strokeText(pData.number, x, 165);
+                ctx.fillText(pData.number, x, 165);
+            });
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.anisotropy = 4;
+            return texture;
+        }
+
+        // Cylindrical segment hanging toward -Y from its joint
+        function makeSegment(rTop, rBottom, length, mat) {
+            const geo = new THREE.CylinderGeometry(rTop, rBottom, length, 14);
+            geo.translate(0, -length / 2, 0);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.castShadow = true;
+            return mesh;
+        }
+
+        // Two-bone limb: root (shoulder/hip) -> mid (elbow/knee) -> end (wrist/ankle)
+        function makeLimb(parent, origin, len1, len2) {
+            const root = new THREE.Group();
+            root.position.copy(origin);
+            const mid = new THREE.Group();
+            mid.position.y = -len1;
+            const end = new THREE.Group();
+            end.position.y = -len2;
+            root.add(mid);
+            mid.add(end);
+            parent.add(root);
+            return { root, mid, end, len1, len2 };
+        }
+
+        // Analytic two-bone IK: brings the end to `target` (parent coordinates)
+        // bending the middle joint toward `pole`.
+        function solveLimb(limb, target, pole) {
+            const toTarget = target.clone().sub(limb.root.position);
+            const dist = THREE.MathUtils.clamp(toTarget.length(), 0.05, limb.len1 + limb.len2 - 0.001);
+            const dir = toTarget.normalize();
+            const bend = pole.clone().sub(dir.clone().multiplyScalar(pole.dot(dir))).normalize();
+            const cosA = (limb.len1 ** 2 + dist ** 2 - limb.len2 ** 2) / (2 * limb.len1 * dist);
+            const a = Math.acos(THREE.MathUtils.clamp(cosA, -1, 1));
+
+            const midPos = dir.clone().multiplyScalar(Math.cos(a) * limb.len1)
+                .add(bend.multiplyScalar(Math.sin(a) * limb.len1));
+            const lowerDir = dir.multiplyScalar(dist).sub(midPos).normalize();
+
+            limb.root.quaternion.setFromUnitVectors(DOWN, midPos.normalize());
+            const lowerQuat = new THREE.Quaternion().setFromUnitVectors(DOWN, lowerDir);
+            limb.mid.quaternion.copy(limb.root.quaternion).invert().multiply(lowerQuat);
+        }
+
+        function buildAthleticPlayer() {
+            if (playerGroup) {
+                scene.remove(playerGroup);
+            }
+
+            const pData = PLAYERS_DATA[activePlayerKey];
+            playerGroup = new THREE.Group();
+            // Everything from the hip up goes down together when the knees bend
+            bodyGroup = new THREE.Group();
+            playerGroup.add(bodyGroup);
+
+            const skinMat = new THREE.MeshStandardMaterial({ color: pData.skinColor, roughness: 0.6 });
+            const hairMat = new THREE.MeshStandardMaterial({ color: pData.hairColor, roughness: 0.9 });
+            const shortsMat = new THREE.MeshStandardMaterial({ color: pData.shortsColor, roughness: 0.55 });
+            const trimMat = new THREE.MeshStandardMaterial({ color: pData.trimColor, roughness: 0.5 });
+            const shoesMat = new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.35 });
+            const soleMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.7 });
+            const socksMat = new THREE.MeshStandardMaterial({ color: 0xF1F5F9, roughness: 0.85 });
+            const jerseyMat = new THREE.MeshStandardMaterial({ map: createJerseyTexture(pData), roughness: 0.55 });
+
+            // 1. Head, neck, hair, ears and nose (the nose shows where it faces)
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.12, 14), skinMat);
+            neck.position.y = 1.68;
+            bodyGroup.add(neck);
+
+            headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.115, 24, 24), skinMat);
+            headMesh.scale.set(0.92, 1.1, 1.0);
+            headMesh.position.y = 1.83;
+            headMesh.castShadow = true;
+            bodyGroup.add(headMesh);
+
+            const hair = new THREE.Mesh(new THREE.SphereGeometry(0.119, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2.3), hairMat);
+            hair.scale.set(0.92, 1.1, 1.0);
+            hair.position.y = 1.845;
+            hair.rotation.x = -0.35;
+            bodyGroup.add(hair);
+
+            [-1, 1].forEach(side => {
+                const ear = new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 10), skinMat);
+                ear.scale.set(0.5, 1, 0.8);
+                ear.position.set(side * 0.105, 1.82, 0);
+                bodyGroup.add(ear);
+            });
+
+            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), skinMat);
+            nose.position.set(0, 1.815, 0.112);
+            bodyGroup.add(nose);
+
+            // 2. Torso: sleeveless jersey flattened front to back
+            jerseyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.2, 0.56, 28), jerseyMat);
+            jerseyMesh.scale.z = 0.62;
+            jerseyMesh.position.y = 1.36;
+            jerseyMesh.castShadow = true;
+            bodyGroup.add(jerseyMesh);
+
+            // 3. Waistband in the accent colour
+            shortsMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.205, 0.215, 0.2, 24), shortsMat);
+            shortsMesh.scale.z = 0.7;
+            shortsMesh.position.y = 1.0;
+            shortsMesh.castShadow = true;
+            bodyGroup.add(shortsMesh);
+
+            const waistband = new THREE.Mesh(new THREE.CylinderGeometry(0.208, 0.208, 0.035, 24), trimMat);
+            waistband.scale.z = 0.7;
+            waistband.position.y = 1.085;
+            bodyGroup.add(waistband);
+
+            // 4. Legs: baggy knee-length shorts, high sock and high-top sneaker
+            const buildLeg = (side) => {
+                const leg = makeLimb(bodyGroup, new THREE.Vector3(side * 0.11, HIP_Y, 0), THIGH, SHIN);
+
+                leg.root.add(makeSegment(0.085, 0.07, THIGH, skinMat));
+                leg.root.add(makeSegment(0.125, 0.115, 0.4, shortsMat));
+                const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.38, 0.05), trimMat);
+                stripe.position.set(side * 0.118, -0.2, 0);
+                leg.root.add(stripe);
+
+                leg.mid.add(new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 12), skinMat));
+                leg.mid.add(makeSegment(0.068, 0.05, SHIN, skinMat));
+                const sock = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.056, 0.22, 14), socksMat);
+                sock.position.y = -SHIN + 0.11;
+                leg.mid.add(sock);
+
+                const sole = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.035, 0.3), soleMat);
+                sole.position.set(0, -ANKLE_Y + 0.0175, 0.05);
+                const upper = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.1, 0.26), shoesMat);
+                upper.position.set(0, -0.015, 0.04);
+                const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.062, 0.07, 14), shoesMat);
+                collar.position.y = 0.04;
+                const swoosh = new THREE.Mesh(new THREE.BoxGeometry(0.114, 0.025, 0.18), trimMat);
+                swoosh.position.set(0, -0.02, 0.05);
+                [sole, upper, collar, swoosh].forEach(m => { m.castShadow = true; leg.end.add(m); });
+
+                return leg;
+            };
+            rightLeg = buildLeg(1);
+            leftLeg = buildLeg(-1);
+
+            // 5. Arms: deltoid, elbow, wristband on the shooting arm and hand
+            const buildArm = (side) => {
+                const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 14), skinMat);
+                shoulder.position.set(side * 0.25, SHOULDER_Y + 0.02, 0);
+                bodyGroup.add(shoulder);
+
+                const arm = makeLimb(bodyGroup, new THREE.Vector3(side * 0.27, SHOULDER_Y, 0), UPPER_ARM, FOREARM);
+                arm.root.add(makeSegment(0.058, 0.048, UPPER_ARM, skinMat));
+                arm.mid.add(new THREE.Mesh(new THREE.SphereGeometry(0.048, 12, 12), skinMat));
+                arm.mid.add(makeSegment(0.048, 0.038, FOREARM, skinMat));
+                if (side === 1) {
+                    const wristband = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.042, 0.06, 14), trimMat);
+                    wristband.position.y = -FOREARM + 0.05;
+                    arm.mid.add(wristband);
+                }
+                const hand = new THREE.Mesh(new THREE.SphereGeometry(0.048, 12, 12), skinMat);
+                hand.scale.set(0.85, 1.35, 0.55);
+                hand.position.y = -0.06;
+                arm.end.add(hand);
+                return arm;
+            };
+            rightArm = buildArm(1);
+            leftArm = buildArm(-1);
+
+            // Scale by the player's real height
+            playerGroup.scale.set(pData.heightScale, pData.heightScale, pData.heightScale);
+
+            posePlayer(IDLE_CROUCH, 0);
+
+            scene.add(playerGroup);
+        }
+
+        // Full player pose.
+        //   crouch: how far the hip drops (feet stay on the floor)
+        //   lift:   0 = ball in triple threat, 1 = ball at the shot set point
+        // While the ball is in the hands it places it; after release it does the follow-through.
+        function posePlayer(crouch = IDLE_CROUCH, lift = 0) {
+            bodyGroup.position.y = -crouch;
+
+            [rightLeg, leftLeg].forEach(leg => {
+                const ankle = new THREE.Vector3(leg.root.position.x * 1.15, ANKLE_Y + crouch, 0.02);
+                solveLimb(leg, ankle, KNEE_POLE);
+                // The sneaker stays flat on the floor even when the shin tilts
+                leg.end.quaternion.copy(leg.root.quaternion).multiply(leg.mid.quaternion).invert();
+            });
+
+            if (ballInHands) {
+                // The ball moves up and down with the body, so in body coordinates
+                // it does not depend on crouch
+                const ball = BALL_HOLD.clone().lerp(BALL_SET_POINT, lift);
+                const target = ball.clone();
+                solveLimb(rightArm, target.clone().add(RIGHT_HAND_HOLD.clone().lerp(RIGHT_HAND_SET, lift)),
+                    ELBOW_POLE_R_HOLD.clone().lerp(ELBOW_POLE_R_SET, lift));
+                solveLimb(leftArm, target.clone().add(LEFT_HAND_HOLD.clone().lerp(LEFT_HAND_SET, lift)),
+                    ELBOW_POLE_L_HOLD.clone().lerp(ELBOW_POLE_L_SET, lift));
+
+                if (basketball) {
+                    ball.y -= crouch;
+                    playerGroup.updateMatrixWorld(true);
+                    basketball.position.copy(playerGroup.localToWorld(ball));
+                }
+            } else {
+                // Follow-through: shooting arm extended toward the hoop, guide hand open at the side
+                solveLimb(rightArm, new THREE.Vector3(0.12, SHOULDER_Y + 0.55, 0.34), ELBOW_POLE_R_SET);
+                solveLimb(leftArm, new THREE.Vector3(-0.3, SHOULDER_Y + 0.3, 0.3), ELBOW_POLE_L_SET);
+            }
+        }
+
+        // Basketball
+        function createBasketball() {
+            const ballGeo = new THREE.SphereGeometry(0.12, 24, 24);
+            const ballMat = new THREE.MeshStandardMaterial({ color: 0xEA580C, roughness: 0.5, metalness: 0.1 });
+            basketball = new THREE.Mesh(ballGeo, ballMat);
+            basketball.castShadow = true;
+            resetBallToPlayerHands();
+            scene.add(basketball);
+        }
+
+        function resetBallToPlayerHands() {
+            ballInHands = true;
+            posePlayer(IDLE_CROUCH, 0);
+            basketball.visible = true;
+        }
+
+        // =========================================================================
+        // 3. FREE CHOICE OF SHOT SPOT (RAYCASTING ON COURT CLICK)
+        // =========================================================================
+        function initCourtRaycasting() {
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+
+            window.addEventListener('pointerdown', (e) => {
+                // If the click was on a panel or button, do not move the player
+                if (e.target.closest('.floating-card') || e.target.closest('.camera-tools') || e.target.closest('.hud-header')) {
+                    return;
+                }
+                if (isShooting) return;
+
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(courtFloorMesh);
+
+                if (intersects.length > 0) {
+                    const pt = intersects[0].point;
+                    // Clamp inside the playable half court
+                    const clampedX = Math.max(-6.8, Math.min(6.8, pt.x));
+                    const clampedZ = Math.max(-5.8, Math.min(6.0, pt.z));
+
+                    updateShooterPosition(clampedX, clampedZ);
+                }
+            });
+        }
+
+        function updateShooterPosition(x, z) {
+            currentShooterPos = { x, z };
+            playerGroup.position.set(x, 0, z);
+            playerGroup.lookAt(HOOP_X, 0, HOOP_Z);
+
+            // Move the indicator ring
+            targetRingMesh.position.set(x, 0.02, z);
+
+            resetBallToPlayerHands();
+            placeDefenders();
+            updateArcPreview();
+
+            // Distance to the hoop in feet (1 m ≈ 3.28084 ft)
+            const dx = x - HOOP_X;
+            const dz = z - HOOP_Z;
+            const distMeters = Math.sqrt(dx * dx + dz * dz);
+            const distFeet = Math.round(distMeters * 3.28084);
+
+            document.getElementById('metric-distance').textContent = `${distFeet} ft`;
+            updatePredictiveStats();
+        }
+
+        function onZoneSelectChanged() {
+            const zoneKey = document.getElementById('select-shot-zone').value;
+            const pos = SHOT_ZONES[zoneKey];
+            if (pos) {
+                updateShooterPosition(pos.x, pos.z);
+                if (cameraModeIndex === 0) applySideCamera(450);
+            }
+        }
+
+        function onPlayerChanged() {
+            activePlayerKey = document.getElementById('select-player').value;
+            buildAthleticPlayer();
+            updateShooterPosition(currentShooterPos.x, currentShooterPos.z);
+            updatePredictiveStats();
+        }
+
+        // Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'swish') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.35);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            } else if (type === 'clank') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(180, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.25);
+            } else if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            }
+        }
+
+        // Full shot simulation and animation
+        // @test-block trajectory (tests/test_simulator.js loads the code between these markers)
+        // Physical trajectory: parabola of a projectile thrown from the hand to the hoop.
+        // Given the release point, the hoop and the launch angle, the initial speed comes from the equations of motion
+        // (there is no hand-written "arc height" and it does not depend on fatigue).
+        const G_ACC = 9.81;
+        const FLIGHT_SLOWMO = 1.15;          // playback 15% slower than real so the parabola can be followed
+        function launchModel(start, target) {
+            const dxh = target.x - start.x, dzh = target.z - start.z;
+            const D = Math.hypot(dxh, dzh) || 0.01, dy = target.y - start.y;
+            // launch angle: higher on close shots (floaters), ~47° on long shots
+            let th = THREE.MathUtils.degToRad(THREE.MathUtils.clamp(60 - D * 1.6, 46, 62));
+            const denomAt = (a) => 2 * Math.cos(a) ** 2 * (D * Math.tan(a) - dy);
+            let denom = denomAt(th);
+            while (denom < 0.2 && th < 1.45) { th += 0.05; denom = denomAt(th); }
+            const v = Math.sqrt(G_ACC * D * D / denom);
+            const vh = v * Math.cos(th), vy = v * Math.sin(th), T = D / vh;
+            const ux = dxh / D, uz = dzh / D;
+            return {
+                T, v, angleDeg: th * 180 / Math.PI,
+                at: (t) => new THREE.Vector3(start.x + ux * vh * t, start.y + vy * t - 0.5 * G_ACC * t * t, start.z + uz * vh * t),
+                vyAt: (t) => vy - G_ACC * t
+            };
+        }
+        let arcPreview = null, arcDots = null, trailLine = null, trailDots = null;
+        function initArcObjects() {
+            arcPreview = new THREE.Line(new THREE.BufferGeometry(),
+                new THREE.LineDashedMaterial({ color: 0xF4EFE6, dashSize: 0.18, gapSize: 0.12, transparent: true, opacity: 0.8 }));
+            arcDots = new THREE.Points(new THREE.BufferGeometry(),
+                new THREE.PointsMaterial({ color: 0xF4EFE6, size: 0.11, transparent: true, opacity: 0.9, sizeAttenuation: true }));
+            trailLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xFFD27A, transparent: true, opacity: 0.95 }));
+            trailDots = new THREE.Points(new THREE.BufferGeometry(),
+                new THREE.PointsMaterial({ color: 0xFFD27A, size: 0.16, transparent: true, opacity: 0.95, sizeAttenuation: true }));
+            [arcPreview, arcDots, trailLine, trailDots].forEach((o) => { o.frustumCulled = false; scene.add(o); });
+            trailLine.visible = false; trailDots.visible = false;
+        }
+        function releasePoint() {
+            const h = (PLAYERS_DATA[activePlayerKey] || {}).heightScale || 1;
+            return new THREE.Vector3(currentShooterPos.x, 2.45 * h, currentShooterPos.z);
+        }
+        function updateArcPreview() {
+            if (!arcPreview) return;
+            const chk = document.getElementById('chk-arc');
+            if ((chk && !chk.checked) || isShooting) { hideArcPreview(); return; }
+            const m = launchModel(releasePoint(), new THREE.Vector3(HOOP_X, HOOP_Y + 0.05, HOOP_Z));
+            const pts = [], dots = [];
+            for (let i = 0; i <= 48; i++) pts.push(m.at(m.T * i / 48));
+            for (let i = 1; i < 36; i++) dots.push(m.at(m.T * i / 36));
+            arcPreview.geometry.setFromPoints(pts);
+            arcPreview.computeLineDistances();
+            arcDots.geometry.setFromPoints(dots);
+            arcPreview.visible = true; arcDots.visible = true;
+        }
+        function hideArcPreview() { if (arcPreview) { arcPreview.visible = false; arcDots.visible = false; } }
+        // The trail is built by sampling the physical model up to the current instant (independent of frame rate)
+        function updateTrail(model, t, pos) {
+            if (!trailLine) return;
+            const pts = [];
+            for (let k = 0; k < t; k += 0.035) pts.push(model.at(k));
+            pts.push(pos);
+            trailLine.geometry.setFromPoints(pts);
+            trailDots.geometry.setFromPoints(pts.filter((_, i) => i % 2 === 0));
+            trailLine.visible = true; trailDots.visible = true;
+        }
+        function resetTrail() { if (trailLine) { trailLine.visible = false; trailDots.visible = false; } }
+        // @end-test-block trajectory
+
+        // Broadcast camera: perpendicular to the shot plane so the parabola is seen from the side.
+        // (From behind the shooter the ball rises and falls in the camera's plane and looks like a vertical line.)
+        function sideCameraPose() {
+            const sx = currentShooterPos.x, sz = currentShooterPos.z;
+            const mx = (sx + HOOP_X) / 2, mz = (sz + HOOP_Z) / 2;
+            let nx = -(HOOP_Z - sz), nz = (HOOP_X - sx);
+            const len = Math.hypot(nx, nz) || 1;
+            nx /= len; nz /= len;
+            if (nx < 0 || (Math.abs(nx) < 1e-6 && nz < 0)) { nx = -nx; nz = -nz; }   // always the same side, to avoid jumping
+            const span = Math.hypot(HOOP_X - sx, HOOP_Z - sz);
+            const dist = Math.max(10, span * 1.15 + 4.2);
+            // shots almost parallel to the baseline (corner threes) would put the camera inside the stands: use the other side
+            const inStands = (x, z) => x < -9.8 || x > 15.8 || z < -9.8 || z > 8.2;
+            if (inStands(mx + nx * dist, mz + nz * dist) && !inStands(mx - nx * dist, mz - nz * dist)) { nx = -nx; nz = -nz; }
+            return { pos: new THREE.Vector3(mx + nx * dist, 4.6, mz + nz * dist), target: new THREE.Vector3(mx, 2.9, mz) };
+        }
+        let camAnimId = 0;
+        function moveCameraTo(pos, target, ms) {
+            const id = ++camAnimId, p0 = camera.position.clone(), t0 = controls.target.clone(), start = performance.now();
+            (function step() {
+                if (id !== camAnimId) return;                       // another camera animation took over
+                const k = Math.min((performance.now() - start) / ms, 1), e = k * k * (3 - 2 * k);
+                camera.position.lerpVectors(p0, pos, e);
+                controls.target.lerpVectors(t0, target, e);
+                if (k < 1) requestAnimationFrame(step);
+            })();
+        }
+        function applySideCamera(ms) {
+            const c = sideCameraPose();
+            if (ms > 0) moveCameraTo(c.pos, c.target, ms); else { camAnimId++; camera.position.copy(c.pos); controls.target.copy(c.target); }
+        }
+
+        function shootBall() {
+            if (isShooting) return;
+            isShooting = true;
+            document.getElementById('btn-shoot').disabled = true;
+
+            const stintMin = parseFloat(document.getElementById('slider-stint').value);
+            const pData = PLAYERS_DATA[activePlayerKey];
+            if (cameraModeIndex === 0) applySideCamera(450);   // TV view: the parabola is seen from the side
+
+            // Distance in meters and feet
+            const dx = currentShooterPos.x - HOOP_X;
+            const dz = currentShooterPos.z - HOOP_Z;
+            const distMeters = Math.sqrt(dx * dx + dz * dz);
+            const distFeet = distMeters * 3.28084;
+
+            // Probability with the same model as the panel (measured effects)
+            const finalProb = computeShotProb().final;
+            const isMade = (Math.random() * 100) < finalProb;
+
+            // 1. Player animation: knee bend raising the ball -> jump -> release and follow-through
+            playSound('jump');
+            let jumpStep = 0;
+            const pHeight = pData.heightScale;
+
+            const jumpInterval = setInterval(() => {
+                jumpStep += 0.07;
+                if (jumpStep <= 0.4) {
+                    // Pre-load (knee dip) while the ball rises to the set point
+                    const t = jumpStep / 0.4;
+                    posePlayer(IDLE_CROUCH + Math.sin(t * Math.PI) * 0.16, t);
+                } else if (jumpStep <= 1.0) {
+                    // Lift in the air (jump shot); on release, posePlayer does the follow-through
+                    playerGroup.position.y = Math.sin((jumpStep - 0.4) * Math.PI / 0.6) * 0.55 * pHeight;
+                    posePlayer(0, 1);
+                } else {
+                    playerGroup.position.y = 0;
+                    posePlayer(IDLE_CROUCH, 1);
+                    clearInterval(jumpInterval);
+                }
+            }, 25);
+
+            // 2. Ball trajectory (dynamic 3D parabola from the hands at release)
+            let startPos;
+            let targetPos;
+
+            if (isMade) {
+                targetPos = new THREE.Vector3(HOOP_X, HOOP_Y + 0.05, HOOP_Z);
+            } else {
+                targetPos = new THREE.Vector3(HOOP_X, HOOP_Y + 0.02, HOOP_Z + RIM_RADIUS);
+            }
+
+            // Flight: physical parabola to the hoop (see launchModel). The trail is drawn as the ball advances.
+            let model = null, flightStart = 0;
+
+            function animateFlight() {
+                const p = Math.min((performance.now() - flightStart) / (model.T * FLIGHT_SLOWMO * 1000), 1.0);
+                const pos = model.at(p * model.T);
+                basketball.position.copy(pos);
+                basketball.rotation.x -= 0.15;
+                updateTrail(model, p * model.T, pos);
+
+                if (p < 1.0) {
+                    requestAnimationFrame(animateFlight);
+                } else {
+                    onShotArrival(isMade);
+                }
+            }
+
+            // Start the ball flight at the top of the jump
+            setTimeout(() => {
+                ballInHands = false;
+                startPos = basketball.position.clone();
+                model = launchModel(startPos, targetPos);
+                hideArcPreview(); resetTrail();
+                flightStart = performance.now();
+                requestAnimationFrame(animateFlight);
+            }, 180);
+        }
+
+        function onShotArrival(isMade) {
+            const banner = document.getElementById('result-banner');
+
+            if (isMade) {
+                playSound('swish');
+                banner.className = 'made';
+                banner.textContent = I18N.t('sim.made');
+
+                let netTime = 0;
+                const netInterval = setInterval(() => {
+                    netTime += 0.2;
+                    netMesh.scale.x = 1.0 + Math.sin(netTime * 8) * 0.18;
+                    netMesh.scale.z = 1.0 + Math.sin(netTime * 8) * 0.18;
+                    if (netTime > 1.2) {
+                        netMesh.scale.set(1, 1, 1);
+                        clearInterval(netInterval);
+                    }
+                }, 30);
+
+                animateBallDrop(new THREE.Vector3(HOOP_X, 0.12, HOOP_Z));
+            } else {
+                playSound('clank');
+                banner.className = 'missed';
+                banner.textContent = I18N.t('sim.missed');
+
+                const bounceTarget = new THREE.Vector3(
+                    HOOP_X + (Math.random() - 0.5) * 1.5,
+                    0.12,
+                    HOOP_Z + 2.2
+                );
+                animateBallBounce(bounceTarget);
+            }
+
+            setTimeout(() => {
+                banner.className = '';
+                resetBallToPlayerHands();
+                isShooting = false;
+                resetTrail(); updateArcPreview();
+                document.getElementById('btn-shoot').disabled = false;
+            }, 2200);
+        }
+
+        function animateBallDrop(groundPos) {
+            let dropTime = 0;
+            const startY = basketball.position.y;
+            const dropInterval = setInterval(() => {
+                dropTime += 0.08;
+                basketball.position.y = THREE.MathUtils.lerp(startY, groundPos.y, dropTime);
+                if (dropTime >= 1.0) {
+                    clearInterval(dropInterval);
+                }
+            }, 25);
+        }
+
+        function animateBallBounce(bouncePos) {
+            let bounceTime = 0;
+            const startP = basketball.position.clone();
+            const bounceInterval = setInterval(() => {
+                bounceTime += 0.05;
+                const progress = Math.min(bounceTime, 1.0);
+                basketball.position.x = THREE.MathUtils.lerp(startP.x, bouncePos.x, progress);
+                basketball.position.z = THREE.MathUtils.lerp(startP.z, bouncePos.z, progress);
+                basketball.position.y = Math.max(0.12, startP.y - progress * 2.8 + Math.sin(progress * Math.PI) * 1.2);
+                if (progress >= 1.0) {
+                    clearInterval(bounceInterval);
+                }
+            }, 25);
+        }
+
+        // Draggable, collapsible panels
+        function toggleCard(cardName) {
+            const body = document.getElementById(`${cardName}-body`);
+            const btn = document.getElementById(`btn-min-${cardName}`);
+            if (body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                btn.textContent = '−';
+            } else {
+                body.classList.add('collapsed');
+                btn.textContent = '+';
+            }
+        }
+
+        function initDraggableCards() {
+            makeDraggable(document.getElementById('controls-panel'), document.getElementById('controls-drag-handle'));
+            makeDraggable(document.getElementById('metrics-panel'), document.getElementById('metrics-drag-handle'));
+        }
+
+        function makeDraggable(element, handle) {
+            let posX = 0, posY = 0, initialMouseX = 0, initialMouseY = 0;
+
+            handle.onmousedown = dragMouseDown;
+            handle.ontouchstart = dragTouchStart;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                initialMouseX = e.clientX;
+                initialMouseY = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                posX = initialMouseX - e.clientX;
+                posY = initialMouseY - e.clientY;
+                initialMouseX = e.clientX;
+                initialMouseY = e.clientY;
+
+                element.style.bottom = 'auto';
+                element.style.right = 'auto';
+                element.style.top = (element.offsetTop - posY) + 'px';
+                element.style.left = (element.offsetLeft - posX) + 'px';
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+
+            function dragTouchStart(e) {
+                const touch = e.touches[0];
+                initialMouseX = touch.clientX;
+                initialMouseY = touch.clientY;
+                document.ontouchend = closeTouchDrag;
+                document.ontouchmove = touchDrag;
+            }
+
+            function touchDrag(e) {
+                const touch = e.touches[0];
+                posX = initialMouseX - touch.clientX;
+                posY = initialMouseY - touch.clientY;
+                initialMouseX = touch.clientX;
+                initialMouseY = touch.clientY;
+
+                element.style.bottom = 'auto';
+                element.style.right = 'auto';
+                element.style.top = (element.offsetTop - posY) + 'px';
+                element.style.left = (element.offsetLeft - posX) + 'px';
+            }
+
+            function closeTouchDrag() {
+                document.ontouchend = null;
+                document.ontouchmove = null;
+            }
+        }
+
+        // HUD and metrics
+        function onStintSliderChange(val) {
+            const stintMin = parseFloat(val);
+            document.getElementById('slider-stint-val').textContent = `${stintMin.toFixed(1)} min`;
+
+            const mins = Math.floor(stintMin);
+            const secs = Math.round((stintMin - mins) * 60);
+            const clockStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            const clockEl = document.getElementById('hud-clock');
+            clockEl.textContent = clockStr;
+
+            const statusEl = document.getElementById('hud-status');
+            const deltaEl = document.getElementById('hud-delta');
+
+            clockEl.className = 'hud-clock';
+            statusEl.className = 'hud-badge';
+
+            if (stintMin < 4.0) {
+                clockEl.classList.remove('warning', 'critical');
+                statusEl.classList.remove('warning', 'critical');
+                statusEl.textContent = I18N.t('sim.st.rested');
+                deltaEl.textContent = "0.0 pp (base)";
+                deltaEl.style.color = "#9CC48A";
+            } else if (stintMin < 8.0) {
+                clockEl.classList.add('warning');
+                statusEl.classList.add('warning');
+                statusEl.textContent = I18N.t('sim.st.mid');
+                deltaEl.textContent = `${(-fatigueDropFor(stintMin)).toFixed(2)} pp`;
+                deltaEl.style.color = "#E8923F";
+            } else {
+                clockEl.classList.add('critical');
+                statusEl.classList.add('critical');
+                statusEl.textContent = I18N.t('sim.st.long');
+                deltaEl.textContent = `${(-fatigueDropFor(stintMin)).toFixed(2)} pp`;
+                deltaEl.style.color = "#E5584F";
+            }
+
+            updatePredictiveStats();
+        }
+
+        function updatePredictiveStats() {
+            const stintMin = parseFloat(document.getElementById('slider-stint').value);
+            const m = computeShotProb();
+            const f = (v) => (v >= 0 ? '+' : '') + v.toFixed(1);
+            document.getElementById('metric-base-xshot').textContent = `${m.base.toFixed(1)}%`;
+            document.getElementById('metric-dist-adj').textContent = `${f(m.da)} pp`;
+            document.getElementById('metric-def-ft').textContent = DEF.mainDef.toFixed(1);
+            const typEl = document.getElementById('metric-def-typ'); if (typEl) typEl.textContent = DEF.contest ? I18N.t('sim.typical', { x: m.typ.toFixed(1) }) : '';
+            document.getElementById('metric-contest').textContent = `${f(m.ca.adj)} pp`;
+            document.getElementById('metric-contest-ci').textContent = DEF.contest ? `(${f(m.ca.lo)} ${I18N.t('sim.to')} ${f(m.ca.hi)})` : '';
+            document.getElementById('metric-team').textContent = DEF.team ? `${f(m.ta.adj)} pp` : '0.0 pp';
+            document.getElementById('metric-team-ci').textContent = DEF.team ? `(${f(m.ta.lo)} ${I18N.t('sim.to')} ${f(m.ta.hi)})` : I18N.t('sim.league');
+            const minsEffect = m.cold - m.fatigueDrop;
+            document.getElementById('metric-penalty').textContent = `${f(minsEffect)} pp`;
+            const hud = document.getElementById('hud-delta');
+            if (hud) { hud.textContent = `${f(minsEffect)} pp`; hud.style.color = minsEffect < -0.05 ? '#E5584F' : '#9CC48A'; }
+            document.getElementById('metric-final-prob').textContent = `${m.final.toFixed(1)}%`;
+            renderWeights(m);
+
+            const fatiguePct = Math.min(100, Math.round((stintMin / 12.0) * 100));
+            document.getElementById('metric-fatigue-pct').textContent = `${fatiguePct}%`;
+            document.getElementById('gauge-bar').style.width = `${fatiguePct}%`;
+
+            if (fatiguePct > 65) {
+                document.getElementById('gauge-bar').style.background = "linear-gradient(90deg, #E8923F, #E5584F)";
+            } else {
+                document.getElementById('gauge-bar').style.background = "linear-gradient(90deg, #9CC48A, #E8923F)";
+            }
+        }
+
+        // Contribution of each measured term (pp vs. the player's base accuracy): makes the size of fatigue comparable
+        function renderWeights(m) {
+            const rows = [
+                ['sim.w.shot', m.da], ['sim.w.def', m.ca.adj], ['sim.w.rival', m.ta.adj],
+                ['sim.w.cold', m.cold], ['sim.w.fat', -m.fatigueDrop, 'fat']
+            ];
+            const scale = Math.max(5, ...rows.map((r) => Math.abs(r[1])));
+            document.getElementById('weights').innerHTML =
+                `<div class="w-title">${I18N.t('sim.w.title')}</div>` +
+                rows.map(([k, v, cls]) => {
+                    const w = Math.abs(v) / scale * 50;
+                    const pos = v >= 0 ? `left:50%;width:${w}%` : `left:${50 - w}%;width:${w}%`;
+                    return `<div class="w-row ${cls || ''}"><span>${I18N.t(k)}</span><div class="w-track"><div class="w-bar" style="${pos};background:${v >= 0 ? '#9CC48A' : '#E5584F'}"></div></div>` +
+                        `<span class="w-v">${(v >= 0 ? '+' : '') + v.toFixed(1)}</span></div>`;
+                }).join('') +
+                `<div class="w-note">${I18N.t('sim.w.note')}</div>`;
+        }
+
+        function resetStint() {
+            document.getElementById('slider-stint').value = 1.0;
+            onStintSliderChange(1.0);
+        }
+
+        const CAM_KEYS = ['sim.cam.tv', 'sim.cam.shooter', 'sim.cam.rim', 'sim.cam.free'];
+        function updateCameraLabel() {
+            const btn = document.getElementById('btn-camera');
+            if (btn) btn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg> ' + I18N.t(CAM_KEYS[cameraModeIndex]);
+        }
+        function cycleCamera() {
+            cameraModeIndex = (cameraModeIndex + 1) % 4;
+            updateCameraLabel();
+
+            if (cameraModeIndex === 0) {
+                applySideCamera(450);
+            } else if (cameraModeIndex === 1) {
+                const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(playerGroup.quaternion);
+                camera.position.copy(playerGroup.position).add(new THREE.Vector3(0, 2.2, 0)).sub(forward.multiplyScalar(2.6));
+                controls.target.set(HOOP_X, HOOP_Y, HOOP_Z);
+            } else if (cameraModeIndex === 2) {
+                camera.position.set(0, 4.8, -4.2);
+                controls.target.set(HOOP_X, HOOP_Y, HOOP_Z);
+            } else {
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            I18N.apply();
+            initScene();
+            animate();
+            updateCameraLabel();
+            onStintSliderChange(2.5);
+            document.querySelectorAll('#lang-switch button').forEach((b) => b.addEventListener('click', () => I18N.set(b.dataset.lang)));
+            I18N.onChange(() => {
+                updateFatigueNote(); updateDefNote(); updateCameraLabel();
+                onStintSliderChange(document.getElementById('slider-stint').value);
+            });
+        };
+        loadRealData();
+        loadDefenseData();
+    </script>
+</body>
+</html>
