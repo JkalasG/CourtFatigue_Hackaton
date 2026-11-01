@@ -32,3 +32,13 @@ data/processed/extra/*.csv
 
 # Demo videos (uploaded to YouTube/Devpost, too heavy for the repo)
 video/
+
+# Submission material kept locally (Devpost text, video script, gallery, cover images)
+docs/devpost_description.md
+docs/es/devpost_descripcion.md
+docs/video_script_2min.md
+docs/es/guion_video_2min.md
+docs/project_description.md
+docs/es/descripcion_proyecto.md
+devpost_gallery/
+logo_entrega/

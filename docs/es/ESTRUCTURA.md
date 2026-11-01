@@ -22,7 +22,7 @@ datos crudos  ─►  src/  ─►  datos procesados  ─►  scripts/  ─►  
 | `scripts/` | `download_seasons.py` · `download_shot_logs.py` · `data_quality.py` · `build_web_data.py` · `build_defense_data.py` · `build_extra_analyses.py` · `holdout_replication.py` · `build_readme_figures.py` | Descargan datos, auditan su calidad, corren los análisis para el entrenador y la replicación 2025-26, y empaquetan los resultados en JSON para la web (más los gráficos del README) |
 | `web/` | `index.html` · `css/` · `js/` · `assets/` · `data/` · `simulador/` | La página (sin librerías) y el simulador 3D. No calculan nada: leen los JSON |
 | `tests/` | `test_fatigue_stats.py` (6 pruebas) · `test_calculator.js` (37 comprobaciones) · `test_simulator.js` (179 comprobaciones) | Verifican que la estadística no invente efectos, que la calculadora reproduzca la salida de Python y que el simulador sea coherente |
-| `docs/` | Texto para Devpost, guion del video y descripción del proyecto (inglés) y `docs/es/` (español) | Material de la entrega |
+| `docs/` | `preregistration.md` (plan de la replicación 2025-26), `img/` (GIF y gráficos del README) y `docs/es/` (documentación en español) | Documentación |
 | `.github/workflows/` | `pages.yml` | Puede publicar `web/` en GitHub Pages (opcional; la app en vivo está en Vercel: https://courtfatigue-web.vercel.app/) |
 | `logos/` | Material gráfico del hackatón | Origen de los logos de `web/assets/` |
 

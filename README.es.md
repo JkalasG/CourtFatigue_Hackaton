@@ -15,14 +15,14 @@
 | | Resultado | IC 95% |
 |---|---|---|
 | **Arranque frío** (primeros 30 s tras entrar) | **−1.46 pp** frente al nivel propio del jugador | −1.95 a −0.97 |
-| **Replicación preregistrada** en 2025-26 (nunca vista; plan publicado antes de descargarla) | **−1.35 pp** → replicado | −2.24 a −0.46 |
+| **Replicación preregistrada** en 2025-26 (nunca vista; plan [publicado](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) antes de descargarla) | **−1.35 pp** → replicado | −2.24 a −0.46 |
 | Costo del arranque frío | **~27 puntos por equipo y temporada** (≈ 0.9 victorias) | 19 a 36 |
 | "Cansancio de tiro" tras ≥ 8 min seguidos (frente a jugadores ya calentados, 2–6 min) | **+0.21 pp**: ninguno | −0.13 a +0.56 |
 | Jugadores con caída por cansancio demostrable | **0 de 592** | con corrección FDR |
 
 - **El mito se equivoca en una dirección útil.** Los entrenadores sacan a los tiradores "antes de que se cansen", pero el acierto no cae hasta ~12 minutos seguidos.
 - **La fuga real está en la entrada.** Los tiros de los primeros 30 s tras un cambio son los peores, incluso los tiros libres (−1.9 pp), donde no hay defensor. Uno de cada cuatro tiros (24.6%) se lanza en los 2 primeros minutos tras entrar.
-- **Qué puede hacer un cuerpo técnico mañana:** diseñar la primera posesión tras un cambio para el tiro que menos sufre el arranque frío (cerca del aro: −0.8 pp, frente a −1.8 pp en triples y −2.6 pp a media distancia) y activar al suplente antes de que entre. Todavía no se ha probado si así se recuperan los puntos.
+- **Qué puede hacer un cuerpo técnico mañana:** diseñar la primera posesión tras un cambio para el tiro que menos sufre el arranque frío (cerca del aro: −0.8 pp, frente a −1.8 pp en triples y −2.6 pp a media distancia) y activar al suplente antes de que entre. Probarlo no cuesta nada: ni traspasos, ni tope salarial, ni minutos extra; solo cómo se diseña la primera jugada. Todavía no se ha probado si así se recuperan los puntos.
 
 ### Un tiro concreto (calculadora de banca)
 
@@ -46,6 +46,8 @@ Cada número de estos gráficos se lee de los mismos archivos que usa la app (`w
 
 ![Puntos por equipo y temporada: arranque frío frente a back-to-backs](docs/img/fig_cost.svg)
 
+> **La prueba está en el historial de git.** El plan, las estimaciones congeladas y la regla de éxito están en el [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) (29 oct 2026), hecho antes de descargar cualquier archivo de 2025-26; el script se niega a correr la prueba sin ese commit.
+>
 > **Cómo leer la replicación con honestidad.** La prueba principal preregistrada (primeros 30 s) se replicó. Las ventanas más pequeñas de 30–60 s y 1–2 min apuntan en la misma dirección en 2021-25, pero por sí solas no se distinguen de cero en 2025-26. La ausencia de cansancio también se mantuvo (+0.31 pp).
 
 ## Cómo cumple los criterios de evaluación del Data Bowl
@@ -57,6 +59,8 @@ Cada número de estos gráficos se lee de los mismos archivos que usa la app (`w
 | **Presentación de los datos** | App web bilingüe (EN/ES); primero el resumen en lenguaje simple y debajo el detalle técnico; simulador 3D que muestra qué pesa más en un tiro; cada número con su IC 95% |
 | Prototipo funcional | https://courtfatigue-web.vercel.app/ |
 | Código abierto | este repositorio ([MIT](LICENSE)) |
+| Análisis de un deporte profesional | NBA, datos de play-by-play y tiros de NBA Stats 2021-22 a 2025-26 |
+| Proyecto nuevo | hecho para el Data Bowl 4.0 |
 
 ## Validación
 
@@ -139,7 +143,7 @@ El idioma (inglés o español) se elige con el selector EN / ES de la barra supe
 
 La página es estática (carpeta `web/`), sin librerías salvo Three.js en el simulador. Está publicada en Vercel; `.github/workflows/pages.yml` también puede publicarla en GitHub Pages. Cómo ejecutarla en tu computadora: ver [Instrucciones para clonar y ejecutar](#instrucciones-para-clonar-y-ejecutar), al final.
 
-Para el envío a Devpost: [docs/es/devpost_descripcion.md](docs/es/devpost_descripcion.md) (texto) y [docs/es/guion_video_2min.md](docs/es/guion_video_2min.md) (guion del video). Descripción larga: [docs/es/descripcion_proyecto.md](docs/es/descripcion_proyecto.md). Plan de la replicación: [docs/preregistration.md](docs/preregistration.md) (en inglés).
+Video: https://youtu.be/sOfh15Tk0wY · Plan de la replicación: [docs/preregistration.md](docs/preregistration.md) (en inglés).
 
 ## Simulador 3D (`web/simulador/`)
 
@@ -206,6 +210,16 @@ Se usan cuatro conjuntos: los **tiros** y el **play-by-play** de la NBA (4 tempo
 ## Estructura del sistema
 
 Los datos pasan por `src/` (cálculo del análisis), `scripts/` (empaquetado) y `web/` (página y simulador 3D).
+
+```text
+src/       stints, modelo de tiro esperado (xShot) y estadística
+scripts/  descargas, calidad de datos, datos de la web, análisis para el entrenador, replicación 2025-26, gráficos del README
+web/      la app (HTML, CSS, JS), sus datos (web/data/) y el simulador 3D (web/simulador/)
+tests/    estadística (Python), calculadora de banca y simulador (Node)
+docs/     preregistro, imágenes del README, documentación en español
+```
+
+**Tecnologías:** Python (pandas, NumPy, scikit-learn), HTML/CSS/JavaScript sin librerías con gráficos SVG propios, Three.js para el simulador, Node para las pruebas de JS, Vercel para publicar. Solo CPU.
 
 > **Qué hace cada carpeta y cada archivo:** [ESTRUCTURA.md](docs/es/ESTRUCTURA.md).
 

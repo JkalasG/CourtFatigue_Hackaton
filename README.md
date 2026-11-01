@@ -15,14 +15,14 @@
 | | Result | 95% CI |
 |---|---|---|
 | **Cold start** (first 30 s after checking in) | **−1.46 pp** vs. the player's own level | −1.95 to −0.97 |
-| **Preregistered replication** on 2025-26 (never seen; plan committed before download) | **−1.35 pp** → replicated | −2.24 to −0.46 |
+| **Preregistered replication** on 2025-26 (never seen; plan [committed](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) before download) | **−1.35 pp** → replicated | −2.24 to −0.46 |
 | Cost of the cold start | **~27 points per team per season** (≈ 0.9 wins) | 19 to 36 |
 | "Shooting fatigue" after ≥ 8 consecutive min (vs. warmed-up, 2–6 min) | **+0.21 pp**: none | −0.13 to +0.56 |
 | Players with a provable fatigue drop | **0 of 592** | FDR-corrected |
 
 - **The myth is wrong in a useful direction.** Coaches pull shooters "before they get tired", but accuracy does not fall up to ~12 consecutive minutes.
 - **The real leak is the entry.** Shots in the first 30 s after a substitution are the worst, even free throws (−1.9 pp), where there is no defender. One in four shots (24.6%) is taken in the first 2 minutes after checking in.
-- **What a staff can do tomorrow:** design the first possession after a sub for the shot the cold start hurts least (near the rim: −0.8 pp, vs. −1.8 pp on threes and −2.6 pp from mid-range) and get the sub active before they check in. Whether this wins the points back has not been tested yet.
+- **What a staff can do tomorrow:** design the first possession after a sub for the shot the cold start hurts least (near the rim: −0.8 pp, vs. −1.8 pp on threes and −2.6 pp from mid-range) and get the sub active before they check in. It is free to try: no trade, no cap space, no extra minutes, only how the first play is drawn up. Whether it wins the points back has not been tested yet.
 
 ### One shot, made concrete (bench calculator)
 
@@ -46,6 +46,8 @@ Every number in these charts is read from the same files the app uses (`web/data
 
 ![Points per team-season: cold start vs. back-to-backs](docs/img/fig_cost.svg)
 
+> **The proof is in the git history.** The plan, the frozen estimates and the success rule are in [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) (29 Oct 2026), made before any 2025-26 file was downloaded; the script refuses to run the test without that commit.
+>
 > **Read the replication honestly.** The preregistered primary test (first 30 s) replicated. The smaller 30–60 s and 1–2 min windows point the same way in 2021-25, but on their own they are not distinguishable from zero in 2025-26. The absence of fatigue held as well (+0.31 pp).
 
 ## How this meets the Data Bowl judging criteria
@@ -57,6 +59,8 @@ Every number in these charts is read from the same files the app uses (`web/data
 | **Data presentation** | Bilingual (EN/ES) web app; plain-language summary first, technical detail below; 3D simulator showing what weighs most on a shot; every number shown with its 95% CI |
 | Working prototype | https://courtfatigue-web.vercel.app/ |
 | Public source code | this repository ([MIT](LICENSE)) |
+| Sports analytics on a professional sport | NBA, NBA Stats play-by-play and shot data 2021-22 to 2025-26 |
+| New project | built for Data Bowl 4.0 |
 
 ## Validation
 
@@ -139,7 +143,7 @@ The language (English or Spanish) is chosen with the EN / ES switch in the top b
 
 The page is static (the `web/` folder), with no libraries except Three.js in the simulator. It is deployed on Vercel; `.github/workflows/pages.yml` can also publish it to GitHub Pages. How to run it on your computer: see [Instructions to clone and run](#instructions-to-clone-and-run), at the end.
 
-For the Devpost submission: [docs/devpost_description.md](docs/devpost_description.md) (text) and [docs/video_script_2min.md](docs/video_script_2min.md) (video script). Longer description: [docs/project_description.md](docs/project_description.md). Replication plan: [docs/preregistration.md](docs/preregistration.md).
+Video: https://youtu.be/sOfh15Tk0wY · Replication plan: [docs/preregistration.md](docs/preregistration.md).
 
 ## 3D simulator (`web/simulador/`)
 
@@ -206,6 +210,16 @@ Four sets are used: NBA **shots** and **play-by-play** (4 seasons, 2021-22 to 20
 ## System structure
 
 Data go through `src/` (analysis calculation), `scripts/` (packaging) and `web/` (page and 3D simulator).
+
+```text
+src/       stints, expected-shot model (xShot) and statistics
+scripts/  downloads, data quality, web data, coaching analyses, 2025-26 replication, README charts
+web/      the app (HTML, CSS, JS), its data (web/data/) and the 3D simulator (web/simulador/)
+tests/    statistics (Python), bench calculator and simulator (Node)
+docs/     preregistration, README images, Spanish docs
+```
+
+**Tech stack:** Python (pandas, NumPy, scikit-learn), plain HTML/CSS/JavaScript with hand-made SVG charts, Three.js for the simulator, Node for the JS tests, Vercel for hosting. CPU only.
 
 > **What each folder and file does:** [STRUCTURE.md](STRUCTURE.md).
 

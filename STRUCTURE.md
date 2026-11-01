@@ -22,7 +22,7 @@ raw data  ─►  src/  ─►  processed data  ─►  scripts/  ─►  web/da
 | `scripts/` | `download_seasons.py` · `download_shot_logs.py` · `data_quality.py` · `build_web_data.py` · `build_defense_data.py` · `build_extra_analyses.py` · `holdout_replication.py` · `build_readme_figures.py` | Download data, audit its quality, run the coaching analyses and the 2025-26 replication, and package the results as JSON for the web (plus the README charts) |
 | `web/` | `index.html` · `css/` · `js/` · `assets/` · `data/` · `simulador/` | The page (no libraries) and the 3D simulator. They calculate nothing: they read the JSON |
 | `tests/` | `test_fatigue_stats.py` (6 tests) · `test_calculator.js` (37 checks) · `test_simulator.js` (179 checks) | Verify the statistics do not invent effects, the calculator reproduces the Python output and the simulator is coherent |
-| `docs/` | Devpost text, video script, project description (English) and `docs/es/` (Spanish) | Submission material |
+| `docs/` | `preregistration.md` (2025-26 replication plan), `img/` (README GIF and charts) and `docs/es/` (Spanish docs) | Documentation |
 | `.github/workflows/` | `pages.yml` | Can publish `web/` to GitHub Pages (optional; the live app is on Vercel: https://courtfatigue-web.vercel.app/) |
 | `logos/` | Hackathon graphic material | Origin of the logos in `web/assets/` |
 
