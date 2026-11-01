@@ -23,7 +23,6 @@ raw data  ─►  src/  ─►  processed data  ─►  scripts/  ─►  web/da
 | `web/` | `index.html` · `css/` · `js/` · `assets/` · `data/` · `simulador/` | The page (no libraries) and the 3D simulator. They calculate nothing: they read the JSON |
 | `tests/` | `test_fatigue_stats.py` (6 tests) · `test_calculator.js` (37 checks) · `test_simulator.js` (179 checks) | Verify the statistics do not invent effects, the calculator reproduces the Python output and the simulator is coherent |
 | `docs/` | `preregistration.md` (2025-26 replication plan), `img/` (README GIF and charts) and `docs/es/` (Spanish docs) | Documentation |
-| `.github/workflows/` | `pages.yml` | Can publish `web/` to GitHub Pages (optional; the live app is on Vercel: https://courtfatigue-web.vercel.app/) |
 | `logos/` | Hackathon graphic material | Origin of the logos in `web/assets/` |
 
 ## What each file in `src/` does

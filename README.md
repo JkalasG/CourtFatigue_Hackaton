@@ -141,7 +141,7 @@ Tabs: **Summary** (the answer in plain language, four key numbers and the placeb
 
 The language (English or Spanish) is chosen with the EN / ES switch in the top bar; it is remembered in the browser and shared with the simulator. It can also be forced with `?lang=es` or `?lang=en`. The design is inspired by a coach's tactics board: dark wood, chalk-white ink and thin orange court lines as separators.
 
-The page is static (the `web/` folder), with no libraries except Three.js in the simulator. It is deployed on Vercel; `.github/workflows/pages.yml` can also publish it to GitHub Pages. How to run it on your computer: see [Instructions to clone and run](#instructions-to-clone-and-run), at the end.
+The page is static (the `web/` folder), with no libraries except Three.js in the simulator. It is deployed on Vercel. How to run it on your computer: see [Instructions to clone and run](#instructions-to-clone-and-run), at the end.
 
 Video: https://youtu.be/sOfh15Tk0wY · Replication plan: [docs/preregistration.md](docs/preregistration.md).
 

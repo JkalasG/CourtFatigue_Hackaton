@@ -23,7 +23,6 @@ datos crudos  ─►  src/  ─►  datos procesados  ─►  scripts/  ─►  
 | `web/` | `index.html` · `css/` · `js/` · `assets/` · `data/` · `simulador/` | La página (sin librerías) y el simulador 3D. No calculan nada: leen los JSON |
 | `tests/` | `test_fatigue_stats.py` (6 pruebas) · `test_calculator.js` (37 comprobaciones) · `test_simulator.js` (179 comprobaciones) | Verifican que la estadística no invente efectos, que la calculadora reproduzca la salida de Python y que el simulador sea coherente |
 | `docs/` | `preregistration.md` (plan de la replicación 2025-26), `img/` (GIF y gráficos del README) y `docs/es/` (documentación en español) | Documentación |
-| `.github/workflows/` | `pages.yml` | Puede publicar `web/` en GitHub Pages (opcional; la app en vivo está en Vercel: https://courtfatigue-web.vercel.app/) |
 | `logos/` | Material gráfico del hackatón | Origen de los logos de `web/assets/` |
 
 ## Qué hace cada archivo de `src/`

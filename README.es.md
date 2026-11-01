@@ -141,7 +141,7 @@ Pestañas: **Resumen** (la respuesta en lenguaje simple, cuatro cifras clave y l
 
 El idioma (inglés o español) se elige con el selector EN / ES de la barra superior; se recuerda en el navegador y se comparte con el simulador. También se puede forzar con `?lang=es` o `?lang=en`. El diseño se inspira en una pizarra táctica: madera oscura, tinta blanco tiza y líneas finas de cancha en naranja como separadores.
 
-La página es estática (carpeta `web/`), sin librerías salvo Three.js en el simulador. Está publicada en Vercel; `.github/workflows/pages.yml` también puede publicarla en GitHub Pages. Cómo ejecutarla en tu computadora: ver [Instrucciones para clonar y ejecutar](#instrucciones-para-clonar-y-ejecutar), al final.
+La página es estática (carpeta `web/`), sin librerías salvo Three.js en el simulador. Está publicada en Vercel. Cómo ejecutarla en tu computadora: ver [Instrucciones para clonar y ejecutar](#instrucciones-para-clonar-y-ejecutar), al final.
 
 Video: https://youtu.be/sOfh15Tk0wY · Plan de la replicación: [docs/preregistration.md](docs/preregistration.md) (en inglés).
 
