@@ -15,7 +15,7 @@
 | | Result | 95% CI |
 |---|---|---|
 | **Cold start** (first 30 s after checking in) | **−1.46 pp** vs. the player's own level | −1.95 to −0.97 |
-| **Preregistered replication** on 2025-26 (never seen; plan [committed](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) before download) | **−1.35 pp** → replicated | −2.24 to −0.46 |
+| **Preregistered replication** on 2025-26 (never seen; plan [committed](https://github.com/JkalasG/CourtFatigue_Hackaton/commit/77aa9f738b5ee23ff68f3701018092b96677a151) before download) | **−1.35 pp** → replicated | −2.24 to −0.46 |
 | Cost of the cold start | **~27 points per team per season** (≈ 0.9 wins) | 19 to 36 |
 | "Shooting fatigue" after ≥ 8 consecutive min (vs. warmed-up, 2–6 min) | **+0.21 pp**: none | −0.13 to +0.56 |
 | Players with a provable fatigue drop | **0 of 592** | FDR-corrected |
@@ -46,7 +46,7 @@ Every number in these charts is read from the same files the app uses (`web/data
 
 ![Points per team-season: cold start vs. back-to-backs](docs/img/fig_cost.svg)
 
-> **The proof is in the git history.** The plan, the frozen estimates and the success rule are in [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) of the development repository ([JkalasG/CourtFatigue](https://github.com/JkalasG/CourtFatigue)) (29 Oct 2026), made before any 2025-26 file was downloaded; the script refuses to run the test unless the preregistration is committed.
+> **The proof is in the git history.** The plan, the frozen estimates and the success rule are in [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue_Hackaton/commit/77aa9f738b5ee23ff68f3701018092b96677a151) (29 Oct 2026, on the [`history` branch](https://github.com/JkalasG/CourtFatigue_Hackaton/commits/history), which keeps the full development history), made before any 2025-26 file was downloaded; the script refuses to run the test unless the preregistration is committed.
 >
 > **Read the replication honestly.** The preregistered primary test (first 30 s) replicated. The smaller 30–60 s and 1–2 min windows point the same way in 2021-25, but on their own they are not distinguishable from zero in 2025-26. The absence of fatigue held as well (+0.31 pp).
 

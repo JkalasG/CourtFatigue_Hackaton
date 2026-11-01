@@ -15,7 +15,7 @@
 | | Resultado | IC 95% |
 |---|---|---|
 | **Arranque frío** (primeros 30 s tras entrar) | **−1.46 pp** frente al nivel propio del jugador | −1.95 a −0.97 |
-| **Replicación preregistrada** en 2025-26 (nunca vista; plan [publicado](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) antes de descargarla) | **−1.35 pp** → replicado | −2.24 a −0.46 |
+| **Replicación preregistrada** en 2025-26 (nunca vista; plan [publicado](https://github.com/JkalasG/CourtFatigue_Hackaton/commit/77aa9f738b5ee23ff68f3701018092b96677a151) antes de descargarla) | **−1.35 pp** → replicado | −2.24 a −0.46 |
 | Costo del arranque frío | **~27 puntos por equipo y temporada** (≈ 0.9 victorias) | 19 a 36 |
 | "Cansancio de tiro" tras ≥ 8 min seguidos (frente a jugadores ya calentados, 2–6 min) | **+0.21 pp**: ninguno | −0.13 a +0.56 |
 | Jugadores con caída por cansancio demostrable | **0 de 592** | con corrección FDR |
@@ -46,7 +46,7 @@ Cada número de estos gráficos se lee de los mismos archivos que usa la app (`w
 
 ![Puntos por equipo y temporada: arranque frío frente a back-to-backs](docs/img/fig_cost.svg)
 
-> **La prueba está en el historial de git.** El plan, las estimaciones congeladas y la regla de éxito están en el [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) del repositorio de desarrollo ([JkalasG/CourtFatigue](https://github.com/JkalasG/CourtFatigue)) (29 oct 2026), hecho antes de descargar cualquier archivo de 2025-26; el script se niega a correr la prueba si la preregistración no está en un commit.
+> **La prueba está en el historial de git.** El plan, las estimaciones congeladas y la regla de éxito están en el [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue_Hackaton/commit/77aa9f738b5ee23ff68f3701018092b96677a151) (29 oct 2026, en la [rama `history`](https://github.com/JkalasG/CourtFatigue_Hackaton/commits/history), que guarda toda la historia de desarrollo), hecho antes de descargar cualquier archivo de 2025-26; el script se niega a correr la prueba si la preregistración no está en un commit.
 >
 > **Cómo leer la replicación con honestidad.** La prueba principal preregistrada (primeros 30 s) se replicó. Las ventanas más pequeñas de 30–60 s y 1–2 min apuntan en la misma dirección en 2021-25, pero por sí solas no se distinguen de cero en 2025-26. La ausencia de cansancio también se mantuvo (+0.31 pp).
 

@@ -169,9 +169,10 @@ def validate():
 
 
 def prereg_commit() -> str:
-    """Hash of the commit that added the preregistration; refuse to run without it."""
+    """Hash of the earliest commit that added the preregistration, on any branch (the original one
+    lives on the `history` branch); refuse to run without it."""
     try:
-        h = subprocess.run(["git", "log", "--diff-filter=A", "--format=%H|%cI", "--", PREREG],
+        h = subprocess.run(["git", "log", "--all", "--date-order", "--diff-filter=A", "--format=%H|%cI", "--", PREREG],
                            capture_output=True, text=True, check=True).stdout.strip().splitlines()
     except (OSError, subprocess.CalledProcessError):
         h = []
