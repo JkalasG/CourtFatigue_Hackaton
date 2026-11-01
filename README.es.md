@@ -46,7 +46,7 @@ Cada número de estos gráficos se lee de los mismos archivos que usa la app (`w
 
 ![Puntos por equipo y temporada: arranque frío frente a back-to-backs](docs/img/fig_cost.svg)
 
-> **La prueba está en el historial de git.** El plan, las estimaciones congeladas y la regla de éxito están en el [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) (29 oct 2026), hecho antes de descargar cualquier archivo de 2025-26; el script se niega a correr la prueba sin ese commit.
+> **La prueba está en el historial de git.** El plan, las estimaciones congeladas y la regla de éxito están en el [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) del repositorio de desarrollo ([JkalasG/CourtFatigue](https://github.com/JkalasG/CourtFatigue)) (29 oct 2026), hecho antes de descargar cualquier archivo de 2025-26; el script se niega a correr la prueba si la preregistración no está en un commit.
 >
 > **Cómo leer la replicación con honestidad.** La prueba principal preregistrada (primeros 30 s) se replicó. Las ventanas más pequeñas de 30–60 s y 1–2 min apuntan en la misma dirección en 2021-25, pero por sí solas no se distinguen de cero en 2025-26. La ausencia de cansancio también se mantuvo (+0.31 pp).
 
@@ -241,8 +241,8 @@ docs/     preregistro, imágenes del README, documentación en español
 **1. Clonar e instalar**
 
 ```bash
-git clone https://github.com/JkalasG/CourtFatigue.git
-cd CourtFatigue
+git clone https://github.com/JkalasG/CourtFatigue_Hackaton.git
+cd CourtFatigue_Hackaton
 python -m venv venv
 venv\Scripts\activate           # Windows (en macOS/Linux: source venv/bin/activate)
 pip install -r requirements.txt

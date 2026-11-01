@@ -46,7 +46,7 @@ Every number in these charts is read from the same files the app uses (`web/data
 
 ![Points per team-season: cold start vs. back-to-backs](docs/img/fig_cost.svg)
 
-> **The proof is in the git history.** The plan, the frozen estimates and the success rule are in [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) (29 Oct 2026), made before any 2025-26 file was downloaded; the script refuses to run the test without that commit.
+> **The proof is in the git history.** The plan, the frozen estimates and the success rule are in [commit 77aa9f7](https://github.com/JkalasG/CourtFatigue/commit/77aa9f738b5ee23ff68f3701018092b96677a151) of the development repository ([JkalasG/CourtFatigue](https://github.com/JkalasG/CourtFatigue)) (29 Oct 2026), made before any 2025-26 file was downloaded; the script refuses to run the test unless the preregistration is committed.
 >
 > **Read the replication honestly.** The preregistered primary test (first 30 s) replicated. The smaller 30–60 s and 1–2 min windows point the same way in 2021-25, but on their own they are not distinguishable from zero in 2025-26. The absence of fatigue held as well (+0.31 pp).
 
@@ -241,8 +241,8 @@ docs/     preregistration, README images, Spanish docs
 **1. Clone and install**
 
 ```bash
-git clone https://github.com/JkalasG/CourtFatigue.git
-cd CourtFatigue
+git clone https://github.com/JkalasG/CourtFatigue_Hackaton.git
+cd CourtFatigue_Hackaton
 python -m venv venv
 venv\Scripts\activate           # Windows (on macOS/Linux: source venv/bin/activate)
 pip install -r requirements.txt
