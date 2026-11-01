@@ -2,7 +2,7 @@
 
 # CourtFatigue: NBA shooters don't tire — they start cold
 
-**▶ Live app: https://courtfatigue-web.vercel.app/** · **[🎬 Video](https://youtu.be/sOfh15Tk0wY)** · [Devpost](https://devpost.com/software/courtfatigue) · Built for the **AQX Sports Analytics Data Bowl 4.0** · MIT license
+**▶ Live app: https://courtfatiguehackaton-web.vercel.app/** · **[🎬 Video](https://youtu.be/sOfh15Tk0wY)** · [Devpost](https://devpost.com/software/courtfatigue) · Built for the **AQX Sports Analytics Data Bowl 4.0** · MIT license
 
 > **Coaches worry about minute 10. The leak is second 10.**
 >
@@ -57,7 +57,7 @@ Every number in these charts is read from the same files the app uses (`web/data
 | **Practical application** | One-page printable coach card; bench calculator for the next shot after a sub; cost in points per team-season; explicit list of what the tool does *not* do |
 | **Analytical insight** | Shot-difficulty model (xShot) validated by game and on an unseen season; player fixed effects with clustered errors; random effects + Benjamini-Hochberg; placebo test; selection-bias split by how stints end; **preregistered replication on 2025-26** |
 | **Data presentation** | Bilingual (EN/ES) web app; plain-language summary first, technical detail below; 3D simulator showing what weighs most on a shot; every number shown with its 95% CI |
-| Working prototype | https://courtfatigue-web.vercel.app/ |
+| Working prototype | https://courtfatiguehackaton-web.vercel.app/ |
 | Public source code | this repository ([MIT](LICENSE)) |
 | Sports analytics on a professional sport | NBA, NBA Stats play-by-play and shot data 2021-22 to 2025-26 |
 | New project | built for Data Bowl 4.0 |
@@ -135,7 +135,7 @@ CourtFatigue **is not an in-game assistant**: it is a tool for planning and for 
 
 ## Interface
 
-**Live:** https://courtfatigue-web.vercel.app/
+**Live:** https://courtfatiguehackaton-web.vercel.app/
 
 Tabs: **Summary** (the answer in plain language, four key numbers and the placebo test) · **For the coach** (printable one-page card with four findings, four actions and the evidence behind each one; how a staff uses it and what it does not do) · **Tools** (*Calculator*: expected make probability of the next shot after a sub; *Check players*: curve, CI, rested vs. tired maps; *New player*: projection with uncertainty) · **Evidence** (the cold start: replication, cost in points, shot type, free throws, bench time; the absence of fatigue: selection bias, robustness, season by season, zones, traits; teams: points-lost audit and team defense) · **3D simulation** (link to the simulator + method).
 

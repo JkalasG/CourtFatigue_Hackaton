@@ -2,7 +2,7 @@
 
 # CourtFatigue: los tiradores de la NBA no se cansan, arrancan fríos
 
-**▶ App en vivo: https://courtfatigue-web.vercel.app/?lang=es** · **[🎬 Video](https://youtu.be/sOfh15Tk0wY)** · [Devpost](https://devpost.com/software/courtfatigue) · Hecho para el **AQX Sports Analytics Data Bowl 4.0** · Licencia MIT
+**▶ App en vivo: https://courtfatiguehackaton-web.vercel.app/?lang=es** · **[🎬 Video](https://youtu.be/sOfh15Tk0wY)** · [Devpost](https://devpost.com/software/courtfatigue) · Hecho para el **AQX Sports Analytics Data Bowl 4.0** · Licencia MIT
 
 > **Los entrenadores se preocupan por el minuto 10. La fuga está en el segundo 10.**
 >
@@ -57,7 +57,7 @@ Cada número de estos gráficos se lee de los mismos archivos que usa la app (`w
 | **Aplicación práctica** | Tarjeta imprimible de una página para el entrenador; calculadora de banca para el siguiente tiro tras un cambio; costo en puntos por equipo y temporada; lista explícita de lo que la herramienta *no* hace |
 | **Valor analítico** | Modelo de dificultad del tiro (xShot) validado por partido y en una temporada no vista; efectos fijos por jugador con errores agrupados; efectos aleatorios + Benjamini-Hochberg; prueba placebo; sesgo de selección separado según cómo terminan los stints; **replicación preregistrada en 2025-26** |
 | **Presentación de los datos** | App web bilingüe (EN/ES); primero el resumen en lenguaje simple y debajo el detalle técnico; simulador 3D que muestra qué pesa más en un tiro; cada número con su IC 95% |
-| Prototipo funcional | https://courtfatigue-web.vercel.app/ |
+| Prototipo funcional | https://courtfatiguehackaton-web.vercel.app/ |
 | Código abierto | este repositorio ([MIT](LICENSE)) |
 | Análisis de un deporte profesional | NBA, datos de play-by-play y tiros de NBA Stats 2021-22 a 2025-26 |
 | Proyecto nuevo | hecho para el Data Bowl 4.0 |
@@ -135,7 +135,7 @@ CourtFatigue **no es un asistente para usar durante el partido**: es una herrami
 
 ## Interfaz
 
-**En vivo:** https://courtfatigue-web.vercel.app/?lang=es
+**En vivo:** https://courtfatiguehackaton-web.vercel.app/?lang=es
 
 Pestañas: **Resumen** (la respuesta en lenguaje simple, cuatro cifras clave y la prueba placebo) · **Para el entrenador** (tarjeta imprimible de una página con cuatro hallazgos, cuatro acciones y la evidencia de cada una; cómo la usa un cuerpo técnico y qué no hace) · **Herramientas** (*Calculadora*: probabilidad esperada del siguiente tiro tras un cambio; *Verificar jugadores*: curva, IC, mapas descansado vs. cansado; *Jugador nuevo*: proyección con incertidumbre) · **Evidencia** (el arranque frío: replicación, costo en puntos, tipo de tiro, tiros libres, tiempo en la banca; la ausencia de fatiga: sesgo de selección, robustez, temporada por temporada, zonas, características; equipos: auditoría de puntos perdidos y defensa) · **Simulación 3D** (acceso al simulador + método).
 
